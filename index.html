@@ -601,14 +601,21 @@
                 <button onclick="nextMonth()">Next ›</button>
             </div>
             <div class="month-title" id="month-title">NOVEMBER 2025</div>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="analysis-btn" id="profile-btn" onclick="showProfile()" style="background: linear-gradient(135deg, #ff6b35, #00ff88);">
+                    👤 PROFILE
+                </button>
                 <button class="analysis-btn" onclick="showWeeklyAnalysis()">
-                    📊 WEEKLY ANALYSIS
+                    📊 ANALYSIS
                 </button>
                 <button class="analysis-btn" onclick="showHelp()" style="background: #333;">
                     ❓ HELP
                 </button>
             </div>
+        </div>
+        
+        <div id="profile-summary" style="background: #1a1a1a; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #333; display: none;">
+            <!-- Profile summary will appear here -->
         </div>
         
         <div style="background: #1a1a1a; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #333;">
@@ -636,6 +643,7 @@
         let exerciseCounters = {};
         let setCounters = {};
         let exerciseHistory = {}; // { 'Bench Press': [{date, sets: [{weight, reps, rpe}]}] }
+        let userProfile = null; // User profile for personalized calculations
         
         // Load/Save
         function loadData() {
@@ -647,12 +655,122 @@
             
             const savedHistory = localStorage.getItem('exerciseHistory');
             if (savedHistory) exerciseHistory = JSON.parse(savedHistory);
+            
+            const savedProfile = localStorage.getItem('userProfile');
+            if (savedProfile) {
+                userProfile = JSON.parse(savedProfile);
+            }
         }
         
         function saveData() {
             localStorage.setItem('eliteTrainingData', JSON.stringify(trainingData));
             localStorage.setItem('historicalTSS', JSON.stringify(historicalTSS));
             localStorage.setItem('exerciseHistory', JSON.stringify(exerciseHistory));
+            if (userProfile) {
+                localStorage.setItem('userProfile', JSON.stringify(userProfile));
+            }
+        }
+        
+        // ========== PROFILE CALCULATIONS ==========
+        
+        // Get CNS multiplier based on training age
+        function getCNSMultiplier() {
+            if (!userProfile) return 1.0;
+            
+            const years = userProfile.trainingAge;
+            if (years < 2) return 1.2; // Beginner - everything harder
+            if (years < 5) return 1.0; // Intermediate - standard
+            if (years < 10) return 0.85; // Advanced - adapted
+            return 0.75; // Elite - very adapted
+        }
+        
+        // Get CNS thresholds personalized
+        function getCNSThresholds() {
+            if (!userProfile) return { low: 60, moderate: 75, high: 100 };
+            
+            const years = userProfile.trainingAge;
+            if (years < 2) return { low: 55, moderate: 65, high: 100 }; // Beginner
+            if (years < 5) return { low: 60, moderate: 75, high: 100 }; // Intermediate
+            if (years < 10) return { low: 70, moderate: 85, high: 100 }; // Advanced
+            return { low: 75, moderate: 90, high: 100 }; // Elite
+        }
+        
+        // Get A:C ratio threshold
+        function getACThreshold() {
+            if (!userProfile) return 1.3;
+            
+            const years = userProfile.trainingAge;
+            if (years < 2) return 1.2; // Beginner - lower tolerance
+            if (years < 5) return 1.3; // Intermediate - standard
+            if (years < 10) return 1.5; // Advanced - higher tolerance
+            return 1.7; // Elite - very high tolerance
+        }
+        
+        // Get recovery multiplier
+        function getRecoveryMultiplier() {
+            if (!userProfile) return 1.0;
+            
+            let multiplier = 1.0;
+            
+            // Age adjustment
+            const age = userProfile.age;
+            if (age >= 40) multiplier *= 1.4;
+            else if (age >= 30) multiplier *= 1.2;
+            
+            // Training age adjustment
+            const years = userProfile.trainingAge;
+            if (years < 2) multiplier *= 1.5; // Beginner needs more recovery
+            else if (years >= 10) multiplier *= 0.8; // Elite recovers faster
+            
+            // Sex adjustment (females recover slower per session but accumulate less fatigue)
+            if (userProfile.sex === 'female') multiplier *= 1.1;
+            
+            return multiplier;
+        }
+        
+        // Calculate HR zones
+        function getHRZones() {
+            if (!userProfile || !userProfile.maxHR) {
+                // Generic fallback
+                return {
+                    z5: { min: 171, max: 190 },
+                    z4: { min: 152, max: 170 },
+                    z3: { min: 133, max: 151 },
+                    z2: { min: 114, max: 132 },
+                    z1: { min: 0, max: 113 }
+                };
+            }
+            
+            const max = userProfile.maxHR;
+            return {
+                z5: { min: Math.round(max * 0.9), max: max },
+                z4: { min: Math.round(max * 0.8), max: Math.round(max * 0.9) - 1 },
+                z3: { min: Math.round(max * 0.7), max: Math.round(max * 0.8) - 1 },
+                z2: { min: Math.round(max * 0.6), max: Math.round(max * 0.7) - 1 },
+                z1: { min: 0, max: Math.round(max * 0.6) - 1 }
+            };
+        }
+        
+        // Calculate relative strength (weight lifted / bodyweight)
+        function getRelativeStrength(weight) {
+            if (!userProfile || !userProfile.bodyweight) return null;
+            return (weight / userProfile.bodyweight).toFixed(2);
+        }
+        
+        // Fatigue accumulation multiplier (females accumulate less)
+        function getFatigueMultiplier() {
+            if (!userProfile) return 1.0;
+            return userProfile.sex === 'female' ? 0.9 : 1.0;
+        }
+        
+        // Get training level label
+        function getTrainingLevel() {
+            if (!userProfile) return 'Intermediate';
+            const years = userProfile.trainingAge;
+            if (years < 2) return 'Beginner';
+            if (years < 5) return 'Intermediate';
+            if (years < 10) return 'Advanced';
+            return 'Elite';
         }
         
         // Update exercise history
@@ -806,8 +924,9 @@
                 const totalCNS = dayData.totalCNS || 0;
                 const indicator = document.createElement('div');
                 indicator.className = 'cns-indicator';
-                if (totalCNS < 60) indicator.classList.add('cns-low');
-                else if (totalCNS < 75) indicator.classList.add('cns-moderate');
+                const thresholds = getCNSThresholds();
+                if (totalCNS < thresholds.low) indicator.classList.add('cns-low');
+                else if (totalCNS < thresholds.moderate) indicator.classList.add('cns-moderate');
                 else indicator.classList.add('cns-high');
                 cell.appendChild(indicator);
                 
@@ -2066,13 +2185,16 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                 if (hr.timeInZone5 > 5) cnsScore += 8;
             }
             
+            // Apply personalized multiplier
+            cnsScore = cnsScore * getCNSMultiplier();
+            
             // TSS calculation
             const duration = 60; // Assume 60 min
             const intensity = avgRPE / 10;
             const tss = duration * intensity * 100;
             
             return {
-                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                cnsScore: Math.max(0, Math.min(100, Math.round(cnsScore))),
                 volume: totalVolume,
                 avgRPE: avgRPE.toFixed(1),
                 tss: Math.round(tss)
@@ -2095,10 +2217,13 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                 if (hr.timeInZone5 > 10) cnsScore += 12;
             }
             
+            // Apply personalized multiplier
+            cnsScore = cnsScore * getCNSMultiplier();
+            
             const tss = 60 + (data.contacts * 0.15) + (data.maxJumps * 2);
             
             return {
-                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                cnsScore: Math.max(0, Math.min(100, Math.round(cnsScore))),
                 volume: 0,
                 tss: Math.round(tss)
             };
@@ -2150,11 +2275,14 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                 if (hr.recovery === 'poor') cnsScore += 8;
             }
             
+            // Apply personalized multiplier
+            cnsScore = cnsScore * getCNSMultiplier();
+            
             // TSS calculation
             const tss = totalTime * 2 + (data.intervals.length * 5) + (avgRPE * 8);
             
             return {
-                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                cnsScore: Math.max(0, Math.min(100, Math.round(cnsScore))),
                 volume: 0,
                 tss: Math.round(tss),
                 peakRPM: peakRPM,
@@ -2181,10 +2309,13 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                 if (hr.timeInZone5 > 20) cnsScore += 12;
             }
             
+            // Apply personalized multiplier
+            cnsScore = cnsScore * getCNSMultiplier();
+            
             const tss = data.time * 1.5 + (data.intensity === 'high' ? 30 : 0);
             
             return {
-                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                cnsScore: Math.max(0, Math.min(100, Math.round(cnsScore))),
                 volume: 0,
                 tss: Math.round(tss)
             };
@@ -2203,10 +2334,13 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                 }
             }
             
+            // Apply personalized multiplier
+            cnsScore = cnsScore * getCNSMultiplier();
+            
             const tss = data.duration * 0.5; // Low stress
             
             return {
-                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                cnsScore: Math.max(0, Math.min(100, Math.round(cnsScore))),
                 volume: 0,
                 tss: Math.round(tss)
             };
@@ -2414,11 +2548,12 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
             const last28Days = historicalTSS.slice(-28);
             let acRatio = '—';
             let acWarning = false;
+            const acThreshold = getACThreshold();
             if (last28Days.length >= 14) {
                 const chronicTSS = last28Days.reduce((a, b) => a + b.tss, 0) / last28Days.length;
                 if (chronicTSS > 0) {
                     acRatio = (totalTSS / (chronicTSS * 7)).toFixed(2);
-                    if (parseFloat(acRatio) > 1.3) acWarning = true;
+                    if (parseFloat(acRatio) > acThreshold) acWarning = true;
                 }
             }
             
@@ -2439,7 +2574,23 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                             <button class="close-btn" onclick="closeModal()">✕ Close</button>
                         </div>
                         
-                        <p style="color: #888; margin-bottom: 30px;">${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()} (${days} training days)</p>
+                        <p style="color: #888; margin-bottom: 10px;">${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()} (${days} training days)</p>
+                        
+                        ${userProfile ? `
+                            <div style="background: rgba(0, 255, 136, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #00ff88;">
+                                <p style="color: #00ff88; font-size: 14px; margin: 0;">
+                                    <strong>Personalized for:</strong> ${getTrainingLevel()} Athlete (${userProfile.trainingAge}yr experience) • 
+                                    Your A:C Threshold: ${acThreshold} • 
+                                    Your CNS Multiplier: ${getCNSMultiplier()}x
+                                </p>
+                            </div>
+                        ` : `
+                            <div style="background: rgba(255, 107, 53, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ff6b35;">
+                                <p style="color: #ff6b35; font-size: 14px; margin: 0;">
+                                    ⚠️ <strong>Using generic thresholds.</strong> <a href="#" onclick="showProfile(); return false;" style="color: #00ff88; text-decoration: underline;">Set up your profile</a> for personalized metrics!
+                                </p>
+                            </div>
+                        `}
                         
                         <h3 style="color: #00ff88; margin-bottom: 15px;">LOAD METRICS:</h3>
                         
@@ -2496,8 +2647,8 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                         ${acWarning ? `
                             <div class="warning-box">
                                 <h3>⚠️ INJURY RISK WARNING</h3>
-                                <p><strong>Acute:Chronic ratio: ${acRatio}</strong> (optimal: 0.8-1.3)</p>
-                                <p>This week's training load is ${((parseFloat(acRatio) - 1) * 100).toFixed(0)}% above your recent average</p>
+                                <p><strong>Acute:Chronic ratio: ${acRatio}</strong> (YOUR threshold: ${acThreshold})</p>
+                                <p>This week's training load is ${((parseFloat(acRatio) / acThreshold - 1) * 100).toFixed(0)}% above YOUR safe threshold</p>
                                 <p><strong>IMMEDIATE ACTIONS:</strong></p>
                                 <ul style="margin-left: 20px; margin-top: 10px;">
                                     <li>Reduce volume by 20-25% next week</li>
@@ -2510,7 +2661,7 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                         ` : `
                             <div class="success-box">
                                 <h3>✓ TRAINING LOAD OPTIMAL</h3>
-                                <p>Your acute:chronic ratio (${acRatio}) is within safe ranges (0.8-1.3)</p>
+                                <p>Your acute:chronic ratio (${acRatio}) is within YOUR safe range (<${acThreshold})</p>
                                 <p>Continue current training approach while monitoring recovery markers</p>
                             </div>
                         `}
@@ -2646,10 +2797,195 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
             return { html, forecast: nextWeekForecast, recommendations };
         }
         
+        // ========== PROFILE SYSTEM ==========
+        function showProfile() {
+            const isNew = !userProfile;
+            const profile = userProfile || {};
+            
+            const html = `
+                <div class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">👤 ${isNew ? 'CREATE' : 'EDIT'} YOUR PROFILE</div>
+                            <button class="close-btn" onclick="closeModal()">✕ Close</button>
+                        </div>
+                        
+                        <div class="${isNew ? 'warning-box' : 'info-box'}">
+                            <h3>${isNew ? '⚠️ PROFILE REQUIRED FOR ACCURATE TRACKING' : '✏️ UPDATE YOUR PROFILE'}</h3>
+                            <p>${isNew ? 'Your age, sex, training experience, and other factors significantly affect CNS calculations, recovery times, and injury risk thresholds. Set your profile for personalized recommendations!' : 'Keep your profile updated as you progress!'}</p>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
+                            
+                            <div class="question">
+                                <label>Age (years) *</label>
+                                <input type="number" id="profile-age" value="${profile.age || ''}" placeholder="32">
+                            </div>
+                            
+                            <div class="question">
+                                <label>Sex *</label>
+                                <select id="profile-sex">
+                                    <option value="">Choose...</option>
+                                    <option value="male" ${profile.sex === 'male' ? 'selected' : ''}>Male</option>
+                                    <option value="female" ${profile.sex === 'female' ? 'selected' : ''}>Female</option>
+                                </select>
+                            </div>
+                            
+                            <div class="question">
+                                <label>Bodyweight (lbs) *</label>
+                                <input type="number" id="profile-weight" value="${profile.bodyweight || ''}" step="0.1" placeholder="185">
+                            </div>
+                            
+                            <div class="question">
+                                <label>Training Age (years) *</label>
+                                <input type="number" id="profile-training-age" value="${profile.trainingAge || ''}" step="0.5" placeholder="8.0">
+                                <p style="color: #666; font-size: 12px; margin-top: 5px;">Years of consistent training experience</p>
+                            </div>
+                            
+                            <div class="question">
+                                <label>Max Heart Rate (bpm)</label>
+                                <input type="number" id="profile-maxhr" value="${profile.maxHR || ''}" placeholder="188">
+                                <p style="color: #666; font-size: 12px; margin-top: 5px;">Tested or estimated (220 - age)</p>
+                            </div>
+                            
+                            <div class="question">
+                                <label>Primary Goal</label>
+                                <select id="profile-goal">
+                                    <option value="">Choose...</option>
+                                    <option value="strength" ${profile.goal === 'strength' ? 'selected' : ''}>Strength</option>
+                                    <option value="hypertrophy" ${profile.goal === 'hypertrophy' ? 'selected' : ''}>Hypertrophy (Muscle)</option>
+                                    <option value="endurance" ${profile.goal === 'endurance' ? 'selected' : ''}>Endurance</option>
+                                    <option value="bjj" ${profile.goal === 'bjj' ? 'selected' : ''}>BJJ Performance</option>
+                                    <option value="hybrid" ${profile.goal === 'hybrid' ? 'selected' : ''}>Hybrid (All)</option>
+                                </select>
+                            </div>
+                            
+                        </div>
+                        
+                        <div class="info-box" style="margin-top: 30px;">
+                            <h3 style="color: #00ccff;">HOW THIS AFFECTS YOUR TRACKING:</h3>
+                            <p><strong>Age:</strong> Recovery time adjustments (30+ = +20%, 40+ = +40%)</p>
+                            <p><strong>Sex:</strong> Males = faster recovery per session. Females = less fatigue accumulation, higher frequency tolerance</p>
+                            <p><strong>Bodyweight:</strong> Calculates relative strength (weight lifted ÷ bodyweight)</p>
+                            <p><strong>Training Age:</strong></p>
+                            <ul style="margin-left: 20px; margin-top: 5px;">
+                                <li>Beginner (0-2yr): CNS ×1.2, A:C threshold 1.2, +50% recovery</li>
+                                <li>Intermediate (2-5yr): CNS ×1.0, A:C threshold 1.3, standard recovery</li>
+                                <li>Advanced (5-10yr): CNS ×0.85, A:C threshold 1.5, -20% recovery</li>
+                                <li>Elite (10+yr): CNS ×0.75, A:C threshold 1.7, -20% recovery</li>
+                            </ul>
+                            <p><strong>Max HR:</strong> Personalizes HR zones (Z5=90-100% YOUR max, not generic)</p>
+                            <p><strong>Goal:</strong> Future feature - will adjust training recommendations</p>
+                        </div>
+                        
+                        <button onclick="saveProfile()" style="background: linear-gradient(135deg, #00ff88, #00ccff); border: none; color: #000; padding: 20px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 30px;">
+                            ✓ SAVE PROFILE & PERSONALIZE SYSTEM
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('day-modal').innerHTML = html;
+            document.getElementById('day-modal').classList.remove('hidden');
+        }
+        
+        function saveProfile() {
+            const age = parseInt(document.getElementById('profile-age').value);
+            const sex = document.getElementById('profile-sex').value;
+            const bodyweight = parseFloat(document.getElementById('profile-weight').value);
+            const trainingAge = parseFloat(document.getElementById('profile-training-age').value);
+            const maxHR = parseInt(document.getElementById('profile-maxhr').value);
+            const goal = document.getElementById('profile-goal').value;
+            
+            // Validation
+            if (!age || !sex || !bodyweight || trainingAge === undefined) {
+                alert('Please fill in all required fields (Age, Sex, Bodyweight, Training Age)');
+                return;
+            }
+            
+            if (age < 15 || age > 100) {
+                alert('Please enter a valid age (15-100)');
+                return;
+            }
+            
+            if (trainingAge < 0 || trainingAge > 50) {
+                alert('Please enter a valid training age (0-50 years)');
+                return;
+            }
+            
+            // Create profile
+            userProfile = {
+                age,
+                sex,
+                bodyweight,
+                trainingAge,
+                maxHR: maxHR || Math.round(220 - age), // Use formula if not provided
+                goal: goal || 'hybrid',
+                created: new Date().toISOString()
+            };
+            
+            saveData();
+            closeModal();
+            updateProfileSummary();
+            
+            alert(`✓ Profile Saved!\n\nTraining Level: ${getTrainingLevel()}\nCNS Multiplier: ${getCNSMultiplier()}x\nA:C Threshold: ${getACThreshold()}\nRecovery Multiplier: ${getRecoveryMultiplier().toFixed(2)}x\n\nAll metrics are now personalized for YOU!`);
+        }
+        
+        function updateProfileSummary() {
+            const summaryDiv = document.getElementById('profile-summary');
+            const profileBtn = document.getElementById('profile-btn');
+            
+            if (!userProfile) {
+                summaryDiv.style.display = 'none';
+                profileBtn.innerHTML = '👤 CREATE PROFILE';
+                profileBtn.style.background = 'linear-gradient(135deg, #ff4444, #ff6b35)';
+                return;
+            }
+            
+            profileBtn.innerHTML = '👤 PROFILE';
+            profileBtn.style.background = 'linear-gradient(135deg, #00ff88, #00ccff)';
+            
+            const hrZones = getHRZones();
+            const level = getTrainingLevel();
+            const thresholds = getCNSThresholds();
+            
+            summaryDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <p style="color: #00ff88; font-weight: bold; margin-bottom: 5px;">
+                            ${userProfile.sex === 'male' ? '👨' : '👩'} ${userProfile.age}yo • 
+                            ${userProfile.bodyweight}lbs • 
+                            ${userProfile.trainingAge}yr training • 
+                            <span style="color: #00ccff;">${level}</span>
+                        </p>
+                        <p style="color: #888; font-size: 13px;">
+                            CNS Thresholds: <${thresholds.low} (low) | ${thresholds.low}-${thresholds.moderate} (mod) | >${thresholds.moderate} (high) • 
+                            A:C Threshold: ${getACThreshold()} • 
+                            Max HR: ${userProfile.maxHR} (Z5: ${hrZones.z5.min}-${hrZones.z5.max})
+                        </p>
+                    </div>
+                    <button onclick="showProfile()" style="background: #333; border: 1px solid #00ff88; color: #00ff88; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                        ✏️ Edit
+                    </button>
+                </div>
+            `;
+            summaryDiv.style.display = 'block';
+        }
+        
         // ========== INIT ==========
         window.onload = function() {
             loadData();
+            updateProfileSummary();
             renderCalendar();
+            
+            // Show profile modal if no profile set
+            if (!userProfile) {
+                setTimeout(() => {
+                    if (confirm('Welcome! Would you like to set up your profile now for personalized tracking?\n\n(Age, training experience, and other factors affect CNS calculations and injury prevention)')) {
+                        showProfile();
+                    }
+                }, 500);
+            }
         };
     </script>
 </body>
