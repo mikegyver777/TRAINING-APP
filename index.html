@@ -1,1099 +1,2034 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>Elite Athlete Training System</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-    background:#0a0a0a;color:#fff;line-height:1.6;padding:20px
-  }
-  .container{max-width:1600px;margin:0 auto}
-  h1{ text-align:center;font-size:42px;margin-bottom:10px;
-      background:linear-gradient(to right,#ff6b35,#00ff88,#00ccff);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .subtitle{ text-align:center;color:#888;margin-bottom:24px;font-size:14px}
-  /* Calendar */
-  .calendar-header{display:flex;justify-content:space-between;align-items:center;
-    margin-bottom:20px;padding:16px;background:#1a1a1a;border-radius:12px;flex-wrap:wrap;gap:12px}
-  .calendar-nav button,.icon-btn{
-    background:#333;border:none;color:#fff;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700
-  }
-  .calendar-nav button:hover,.icon-btn:hover{background:#444}
-  .month-title{font-size:24px;color:#00ff88;font-weight:800;letter-spacing:.5px}
-  .analysis-btn{
-    background:linear-gradient(135deg,#00ff88,#00ccff);color:#000;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-weight:800;font-size:14px
-  }
-  .analysis-btn:hover{transform:translateY(-1px)}
-  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:30px}
-  .calendar-day-header{text-align:center;padding:10px;color:#999;font-weight:800;font-size:12px}
-  .calendar-day{background:#1a1a1a;border:2px solid #333;border-radius:10px;padding:10px;min-height:120px;cursor:pointer;transition:.2s;position:relative;outline:none}
-  .calendar-day:hover{border-color:#666;transform:translateY(-2px)}
-  .calendar-day:focus-visible{outline:2px solid #00ccff}
-  .calendar-day.other-month{opacity:.3}
-  .calendar-day.today{border-color:#00ff88;box-shadow:0 0 20px rgba(0,255,136,.35);background:rgba(0,255,136,.05)}
-  .calendar-day.has-workouts{border-color:#00ccff;background:rgba(0,204,255,.08)}
-  .day-number{font-size:16px;font-weight:800;margin-bottom:6px}
-  .day-workouts{font-size:10px;color:#aaa}
-  .workout-badge{display:inline-block;padding:3px 6px;margin:2px;background:rgba(0,255,136,.2);
-    border-radius:6px;font-size:10px;font-weight:800}
-  .cns-indicator{position:absolute;top:8px;right:8px;width:14px;height:14px;border-radius:50%;border:2px solid #000}
-  .cns-low{background:#00ff88}.cns-moderate{background:#ffaa00}.cns-high{background:#ff4444}
-  /* Modals */
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1000;overflow-y:auto;padding:20px}
-  .modal-content{max-width:1400px;margin:0 auto;background:#0a0a0a;border-radius:12px;padding:28px;border:3px solid #00ff88}
-  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px;flex-wrap:wrap}
-  .modal-title{font-size:26px;color:#00ff88;font-weight:900}
-  .close-btn{background:#ff4444;border:none;color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:800}
-  .close-btn:hover{background:#ff6666}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-  /* Modality toggles */
-  .modality-checkboxes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;padding:16px;background:#1a1a1a;border-radius:12px}
-  .modality-checkbox{display:flex;align-items:center;gap:10px;padding:12px;background:#0a0a0a;border:2px solid #333;border-radius:10px;cursor:pointer;transition:.2s}
-  .modality-checkbox:hover{border-color:#666}
-  .modality-checkbox.checked{border-color:#00ff88;background:rgba(0,255,136,.08)}
-  .modality-checkbox input{width:22px;height:22px;cursor:pointer}
-  .modality-checkbox label{font-size:14px;font-weight:800;cursor:pointer;flex:1}
-  /* Sections & forms */
-  .modality-section{background:#1a1a1a;border:2px solid #00ccff;border-radius:12px;padding:20px;margin-bottom:16px}
-  .modality-section h2{color:#00ccff;margin-bottom:12px;font-size:20px}
-  .exercise-block{background:#0a0a0a;border:1px solid #333;padding:16px;border-radius:10px;margin-bottom:12px}
-  input,select,textarea{width:100%;padding:12px;border:2px solid #333;border-radius:8px;background:#1a1a1a;color:#fff;font-size:16px}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:#00ff88}
-  input[type="text"],input[type="number"]{font-size:16px !important}
-  .exercise-name{font-weight:800;margin-bottom:10px}
-  .set-label{color:#aaa;font-size:13px;margin:12px 0 6px;font-weight:800}
-  .set-row{display:grid;grid-template-columns:1fr 1fr 1fr 40px;gap:8px;margin-bottom:8px}
-  .delete-btn{background:transparent;border:none;color:#ff6666;font-size:20px;cursor:pointer}
-  .delete-btn:hover{color:#ff8888}
-  .add-btn{background:#2a2a2a;border:2px dashed #444;color:#bbb;padding:10px;border-radius:10px;cursor:pointer;font-weight:800}
-  .add-btn:hover{border-color:#00ff88;color:#00ff88}
-  .add-exercise-btn{background:linear-gradient(135deg,#333,#1a1a1a);border:2px solid #00ff88;color:#00ff88;padding:12px;border-radius:12px;font-weight:900;cursor:pointer;width:100%;margin-top:12px}
-  .add-exercise-btn:hover{background:#0a2a1a}
-  .upload-zone{border:2px dashed #333;padding:20px;border-radius:10px;text-align:center;cursor:pointer;transition:.2s;margin:12px 0}
-  .upload-zone:hover{border-color:#00ff88}
-  .upload-zone.has-file{border-color:#00ff88;border-style:solid;background:rgba(0,255,136,.05)}
-  .hr-preview{max-width:100%;max-height:260px;border-radius:10px;margin-top:10px}
-  .save-day-btn{background:linear-gradient(135deg,#00ff88,#00ccff);border:none;color:#000;padding:16px;border-radius:12px;font-size:18px;font-weight:900;cursor:pointer;width:100%;margin-top:16px}
-  .save-day-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,255,136,.25)}
-  .rpe-btn{background:#333;border:2px solid #666;color:#bbb;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:900}
-  .rpe-btn:hover{border-color:#00ff88;color:#00ff88}
-  /* RPE modal */
-  .rpe-modal{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1001;display:flex;align-items:center;justify-content:center;padding:20px}
-  .rpe-content{max-width:640px;background:#1a1a1a;border-radius:12px;padding:22px;border:2px solid #00ff88}
-  .rpe-row{display:grid;grid-template-columns:70px 110px 1fr;gap:12px;padding:10px;margin-bottom:8px;background:#0a0a0a;border-radius:8px;align-items:center}
-  .rpe-number{font-size:22px;font-weight:900;color:#00ff88}
-  .rpe-rir{font-size:13px;color:#00ccff;font-weight:800}
-  .rpe-desc{font-size:13px;color:#aaa}
-  /* Metrics */
-  .metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
-  .metric-card{background:rgba(0,0,0,.5);padding:16px;border-radius:10px;border-left:4px solid #00ccff}
-  .metric-value{font-size:28px;font-weight:900;color:#00ff88}
-  .metric-label{font-size:11px;color:#888;margin-top:4px}
-  .warning-box{background:rgba(255,68,68,.18);border:2px solid #ff4444;padding:16px;border-radius:12px;margin:14px 0}
-  .success-box{background:rgba(0,255,136,.18);border:2px solid #00ff88;padding:16px;border-radius:12px;margin:14px 0}
-  .info-box{background:rgba(0,204,255,.16);border:2px solid #00ccff;padding:16px;border-radius:12px;margin:14px 0}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
-  .hidden{display:none}
-  @media (max-width:768px){
-    h1{font-size:28px}
-    .calendar-grid{gap:5px}
-    .calendar-day{min-height:100px;padding:8px}
-    .day-number{font-size:14px}
-    .modality-checkboxes{grid-template-columns:1fr}
-    .set-row{grid-template-columns:1fr 1fr 1fr 40px}
-    .modal-content{padding:18px}
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Athlete Training System - Complete</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container { max-width: 1600px; margin: 0 auto; }
+        
+        h1 {
+            text-align: center;
+            font-size: 42px;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #ff6b35, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        /* CALENDAR */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .calendar-nav button {
+            background: #333;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 5px;
+            font-weight: bold;
+        }
+        
+        .calendar-nav button:hover { background: #444; }
+        
+        .month-title {
+            font-size: 28px;
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .analysis-btn {
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .analysis-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .calendar-day-header {
+            text-align: center;
+            padding: 12px;
+            color: #888;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .calendar-day {
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 140px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .calendar-day:hover { 
+            border-color: #666; 
+            transform: translateY(-2px); 
+        }
+        
+        .calendar-day.other-month { opacity: 0.3; }
+        
+        .calendar-day.today {
+            border-color: #00ff88;
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.4);
+            background: rgba(0, 255, 136, 0.05);
+        }
+        
+        .calendar-day.has-workouts {
+            border-color: #00ccff;
+            background: rgba(0, 204, 255, 0.1);
+        }
+        
+        .day-number {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        
+        .day-workouts {
+            font-size: 11px;
+            color: #aaa;
+        }
+        
+        .workout-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            margin: 2px;
+            background: rgba(0, 255, 136, 0.2);
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .cns-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #000;
+        }
+        
+        .cns-low { background: #00ff88; }
+        .cns-moderate { background: #ffaa00; }
+        .cns-high { background: #ff4444; }
+        
+        /* MODAL */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #0a0a0a;
+            border-radius: 12px;
+            padding: 40px;
+            border: 3px solid #00ff88;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .modal-title {
+            font-size: 32px;
+            color: #00ff88;
+        }
+        
+        .close-btn {
+            background: #ff4444;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .close-btn:hover { background: #ff6666; }
+        
+        /* MODALITY CHECKBOXES */
+        .modality-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #1a1a1a;
+            border-radius: 12px;
+        }
+        
+        .modality-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: #0a0a0a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .modality-checkbox:hover {
+            border-color: #666;
+        }
+        
+        .modality-checkbox.checked {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .modality-checkbox input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+        
+        .modality-checkbox label {
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 1;
+        }
+        
+        /* MODALITY SECTIONS */
+        .modality-section {
+            background: #1a1a1a;
+            border: 2px solid #00ccff;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .modality-section h2 {
+            color: #00ccff;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        /* FORMS */
+        .exercise-block {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .exercise-name {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #444;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .exercise-name:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+        
+        .muscle-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #444;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .muscle-select:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+        
+        .set-label {
+            color: #888;
+            font-size: 14px;
+            margin: 15px 0 8px 0;
+            font-weight: bold;
+        }
+        
+        .set-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 40px;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .set-row input, .set-row select {
+            padding: 10px;
+            border: 2px solid #333;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: white;
+            font-size: 15px;
+        }
+        
+        .set-row input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+        
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: #ff4444;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .delete-btn:hover {
+            color: #ff6666;
+        }
+        
+        .add-btn {
+            background: #2a2a2a;
+            border: 2px dashed #444;
+            color: #888;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .add-btn:hover {
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+        
+        .add-exercise-btn {
+            background: linear-gradient(135deg, #333, #1a1a1a);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .add-exercise-btn:hover {
+            background: #0a2a1a;
+        }
+        
+        .question {
+            margin-bottom: 15px;
+        }
+        
+        .question label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-weight: bold;
+        }
+        
+        select, input[type="number"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #333;
+            border-radius: 6px;
+            background: #0a0a0a;
+            color: white;
+            font-size: 15px;
+        }
+        
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+        
+        .upload-zone {
+            border: 2px dashed #333;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 15px 0;
+        }
+        
+        .upload-zone:hover {
+            border-color: #00ff88;
+        }
+        
+        .upload-zone.has-file {
+            border-color: #00ff88;
+            border-style: solid;
+            background: rgba(0, 255, 136, 0.05);
+        }
+        
+        .hr-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .save-day-btn {
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            border: none;
+            color: #000;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 30px;
+        }
+        
+        .save-day-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.3);
+        }
+        
+        .rpe-btn {
+            background: #444;
+            border: 2px solid #666;
+            color: #aaa;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .rpe-btn:hover {
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+        
+        /* RPE MODAL */
+        .rpe-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1001;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .rpe-content {
+            max-width: 600px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 30px;
+            border: 2px solid #00ff88;
+        }
+        
+        .rpe-row {
+            display: grid;
+            grid-template-columns: 80px 120px 1fr;
+            gap: 15px;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #0a0a0a;
+            border-radius: 6px;
+            align-items: center;
+        }
+        
+        .rpe-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .rpe-rir {
+            font-size: 14px;
+            color: #00ccff;
+            font-weight: bold;
+        }
+        
+        .rpe-desc {
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        /* METRICS DISPLAY */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #00ccff;
+        }
+        
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .warning-box {
+            background: rgba(255, 68, 68, 0.2);
+            border: 2px solid #ff4444;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .success-box {
+            background: rgba(0, 255, 136, 0.2);
+            border: 2px solid #00ff88;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .info-box {
+            background: rgba(0, 204, 255, 0.2);
+            border: 2px solid #00ccff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .hidden { display: none; }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 28px; }
+            .calendar-grid { gap: 5px; }
+            .calendar-day { min-height: 100px; padding: 8px; }
+            .day-number { font-size: 14px; }
+            .modality-checkboxes { grid-template-columns: 1fr; }
+            .set-row { grid-template-columns: 1fr 1fr 40px; }
+            .modal-content { padding: 20px; }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🏆 ELITE ATHLETE TRAINING SYSTEM</h1>
-    <p class="subtitle">Full Periodization • Load Management • Injury Prevention • Performance Optimization</p>
-
-    <div class="calendar-header">
-      <div class="calendar-nav">
-        <button class="icon-btn" id="btn-prev">‹ Prev</button>
-        <button class="icon-btn" id="btn-today">Today</button>
-        <button class="icon-btn" id="btn-next">Next ›</button>
-      </div>
-      <div class="month-title" id="month-title">—</div>
-      <div class="row">
-        <button class="analysis-btn" id="btn-weekly">📊 WEEKLY ANALYSIS</button>
-        <button class="icon-btn" id="btn-export" title="Export all data">⬇️ Export</button>
-        <label class="icon-btn" title="Import data" style="display:inline-flex;align-items:center;gap:6px;position:relative;overflow:hidden">
-          ⬆️ Import
-          <input id="import-file" type="file" accept="application/json" style="position:absolute;inset:0;opacity:0;cursor:pointer">
-        </label>
-        <button class="icon-btn" id="btn-reset" title="Clear all data">🧹 Reset</button>
-      </div>
-    </div>
-
-    <div class="calendar-grid" id="calendar-grid"></div>
-
-    <div id="day-modal" class="hidden"></div>
-    <div id="weekly-modal" class="hidden"></div>
-    <div id="rpe-modal" class="hidden"></div>
-  </div>
-
-<script>
-/* ----------------- State ----------------- */
-const LS_KEY = 'eliteTrainingData_v2';
-const LS_TSS = 'eliteHistoricalTSS_v2';
-let currentDate = new Date();
-let trainingData = {};          // { 'YYYY-MM-DD': { modalities: {...}, totalCNS, totalVolume, tss, ... } }
-let historicalTSS = [];         // [{date, tss}, ... up to 28]
-let exerciseCounters = {};      // per modality
-let setCounters = {};           // per exercise id { warmup, working }
-let hrData = {};                // transient per open modal
-let currentEditingDate = null;
-
-/* ----------------- Persistence ----------------- */
-function safeParse(json, fallback){
-  try{ return JSON.parse(json) }catch{ return fallback }
-}
-function loadData(){
-  trainingData = safeParse(localStorage.getItem(LS_KEY), {}) || {};
-  historicalTSS = safeParse(localStorage.getItem(LS_TSS), []) || [];
-}
-function saveData(){
-  localStorage.setItem(LS_KEY, JSON.stringify(trainingData));
-  localStorage.setItem(LS_TSS, JSON.stringify(historicalTSS.slice(-28)));
-}
-
-/* ----------------- Calendar ----------------- */
-const monthNames = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-const dow = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-
-function formatDate(date){
-  const y = date.getFullYear();
-  const m = String(date.getMonth()+1).padStart(2,'0');
-  const d = String(date.getDate()).padStart(2,'0');
-  return `${y}-${m}-${d}`;
-}
-function renderCalendar(){
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  document.getElementById('month-title').textContent = `${monthNames[month]} ${year}`;
-
-  const grid = document.getElementById('calendar-grid');
-  grid.innerHTML = '';
-
-  dow.forEach(d=>{
-    const h=document.createElement('div');
-    h.className='calendar-day-header';
-    h.textContent=d;
-    grid.appendChild(h);
-  });
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const daysInPrevMonth = new Date(year, month, 0).getDate();
-  const todayStr = formatDate(new Date());
-
-  // prev-month spill
-  for(let i=firstDay-1;i>=0;i--){
-    const day = daysInPrevMonth - i;
-    createDayCell(grid, new Date(year, month-1, day), true, todayStr);
-  }
-  // current month
-  for(let day=1;day<=daysInMonth;day++){
-    createDayCell(grid, new Date(year, month, day), false, todayStr);
-  }
-  // next-month spill to 35/42 cells
-  const totalCells = firstDay + daysInMonth;
-  const remaining = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
-  for(let day=1; day<=remaining; day++){
-    createDayCell(grid, new Date(year, month+1, day), true, todayStr);
-  }
-}
-function createDayCell(grid, date, otherMonth, todayStr){
-  const cell = document.createElement('button');
-  cell.type='button';
-  cell.className='calendar-day';
-  cell.setAttribute('aria-label', date.toDateString());
-  if(otherMonth) cell.classList.add('other-month');
-  const dateStr = formatDate(date);
-  if(dateStr === todayStr) cell.classList.add('today');
-
-  const dayData = trainingData[dateStr];
-
-  const dayNum = document.createElement('div');
-  dayNum.className='day-number';
-  dayNum.textContent = date.getDate();
-  cell.appendChild(dayNum);
-
-  if (dayData && dayData.modalities && Object.keys(dayData.modalities).length){
-    cell.classList.add('has-workouts');
-
-    const workouts = document.createElement('div');
-    workouts.className='day-workouts';
-    Object.keys(dayData.modalities).forEach(type=>{
-      if (dayData.modalities[type]?.completed){
-        const badge = document.createElement('span');
-        badge.className='workout-badge';
-        badge.textContent=type.toUpperCase();
-        workouts.appendChild(badge);
-      }
-    });
-    cell.appendChild(workouts);
-
-    const indicator = document.createElement('div');
-    indicator.className='cns-indicator';
-    const totalCNS = dayData.totalCNS || 0;
-    if (totalCNS < 60) indicator.classList.add('cns-low');
-    else if (totalCNS < 75) indicator.classList.add('cns-moderate');
-    else indicator.classList.add('cns-high');
-    cell.appendChild(indicator);
-  }
-
-  cell.addEventListener('click', ()=> openDay(dateStr, date));
-  grid.appendChild(cell);
-}
-function prevMonth(){ currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(); }
-function nextMonth(){ currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(); }
-function goToday(){ currentDate = new Date(); renderCalendar(); }
-
-/* ----------------- Day Modal ----------------- */
-function openDay(dateStr, date){
-  currentEditingDate = dateStr;
-  const dayData = trainingData[dateStr] || { modalities:{} };
-  exerciseCounters = {}; setCounters = {}; hrData = {};
-
-  const modal = `
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-content">
-        <div class="modal-header">
-          <div class="modal-title">${date.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
-          <div class="toolbar">
-            <button class="icon-btn" onclick="duplicateDay('${dateStr}')">🧬 Duplicate</button>
-            <button class="icon-btn" onclick="clearDay('${dateStr}')">🧹 Clear</button>
-            <button class="icon-btn" onclick="deleteDay('${dateStr}')">🗑️ Delete</button>
-            <button class="close-btn" onclick="closeModal()">✕ Close</button>
-          </div>
+    <div class="container">
+        <h1>🏆 ELITE ATHLETE TRAINING SYSTEM</h1>
+        <p class="subtitle">Full Periodization • Load Management • Injury Prevention • Performance Optimization</p>
+        
+        <div class="calendar-header">
+            <div class="calendar-nav">
+                <button onclick="previousMonth()">‹ Prev</button>
+                <button onclick="goToToday()">Today</button>
+                <button onclick="nextMonth()">Next ›</button>
+            </div>
+            <div class="month-title" id="month-title">NOVEMBER 2025</div>
+            <div>
+                <button class="analysis-btn" onclick="showWeeklyAnalysis()">
+                    📊 WEEKLY ANALYSIS
+                </button>
+            </div>
         </div>
-
-        <h3 style="color:#00ff88;margin-bottom:10px">SELECT TRAINING MODALITIES FOR TODAY:</h3>
-
-        <div class="modality-checkboxes" id="modality-boxes">
-          ${['chest','back','legs','track','bike','bjj','walking'].map(m=>{
-            const checked = !!dayData.modalities[m];
+        
+        <div class="calendar-grid" id="calendar-grid"></div>
+        
+        <div id="day-modal" class="hidden"></div>
+        <div id="weekly-modal" class="hidden"></div>
+        <div id="rpe-modal" class="hidden"></div>
+    </div>
+    
+    <script>
+        // ========== STATE ==========
+        let currentDate = new Date();
+        let trainingData = {}; // { 'YYYY-MM-DD': { modalities: {...}, totalCNS, totalVolume, tss, hrData } }
+        let historicalTSS = []; // Last 28 days for A:C ratio
+        let exerciseCounters = {};
+        let setCounters = {};
+        
+        // Load/Save
+        function loadData() {
+            const saved = localStorage.getItem('eliteTrainingData');
+            if (saved) trainingData = JSON.parse(saved);
+            
+            const savedTSS = localStorage.getItem('historicalTSS');
+            if (savedTSS) historicalTSS = JSON.parse(savedTSS);
+        }
+        
+        function saveData() {
+            localStorage.setItem('eliteTrainingData', JSON.stringify(trainingData));
+            localStorage.setItem('historicalTSS', JSON.stringify(historicalTSS));
+        }
+        
+        // ========== CALENDAR ==========
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                               'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+            document.getElementById('month-title').textContent = `${monthNames[month]} ${year}`;
+            
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-day-header';
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+            
+            const today = formatDate(new Date());
+            
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const day = daysInPrevMonth - i;
+                const date = new Date(year, month - 1, day);
+                createDayCell(grid, date, true, today);
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                createDayCell(grid, date, false, today);
+            }
+            
+            const totalCells = firstDay + daysInMonth;
+            const remainingCells = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
+            for (let day = 1; day <= remainingCells; day++) {
+                const date = new Date(year, month + 1, day);
+                createDayCell(grid, date, true, today);
+            }
+        }
+        
+        function createDayCell(grid, date, otherMonth, today) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-day';
+            if (otherMonth) cell.classList.add('other-month');
+            
+            const dateStr = formatDate(date);
+            
+            if (dateStr === today) cell.classList.add('today');
+            
+            const dayData = trainingData[dateStr];
+            
+            const dayNum = document.createElement('div');
+            dayNum.className = 'day-number';
+            dayNum.textContent = date.getDate();
+            cell.appendChild(dayNum);
+            
+            if (dayData && dayData.modalities) {
+                cell.classList.add('has-workouts');
+                
+                const workouts = document.createElement('div');
+                workouts.className = 'day-workouts';
+                
+                Object.keys(dayData.modalities).forEach(type => {
+                    if (dayData.modalities[type].completed) {
+                        const badge = document.createElement('span');
+                        badge.className = 'workout-badge';
+                        badge.textContent = type.toUpperCase();
+                        workouts.appendChild(badge);
+                    }
+                });
+                
+                cell.appendChild(workouts);
+                
+                const totalCNS = dayData.totalCNS || 0;
+                const indicator = document.createElement('div');
+                indicator.className = 'cns-indicator';
+                if (totalCNS < 60) indicator.classList.add('cns-low');
+                else if (totalCNS < 75) indicator.classList.add('cns-moderate');
+                else indicator.classList.add('cns-high');
+                cell.appendChild(indicator);
+            }
+            
+            cell.onclick = () => openDay(dateStr, date);
+            grid.appendChild(cell);
+        }
+        
+        function formatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+        
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+        
+        function goToToday() {
+            currentDate = new Date();
+            renderCalendar();
+        }
+        
+        // ========== DAY VIEW (HYBRID FORM) ==========
+        let currentEditingDate = null;
+        
+        function openDay(dateStr, date) {
+            currentEditingDate = dateStr;
+            const dayData = trainingData[dateStr] || { modalities: {} };
+            
+            exerciseCounters = {};
+            setCounters = {};
+            
+            const html = `
+                <div class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">${date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                            <button class="close-btn" onclick="closeModal()">✕ Close</button>
+                        </div>
+                        
+                        <h3 style="color: #00ff88; margin-bottom: 15px;">SELECT TRAINING MODALITIES FOR TODAY:</h3>
+                        
+                        <div class="modality-checkboxes">
+                            <div class="modality-checkbox ${dayData.modalities.chest ? 'checked' : ''}" onclick="toggleModality('chest')">
+                                <input type="checkbox" id="check-chest" ${dayData.modalities.chest ? 'checked' : ''}>
+                                <label for="check-chest">💪 CHEST</label>
+                            </div>
+                            <div class="modality-checkbox ${dayData.modalities.back ? 'checked' : ''}" onclick="toggleModality('back')">
+                                <input type="checkbox" id="check-back" ${dayData.modalities.back ? 'checked' : ''}>
+                                <label for="check-back">💪 BACK</label>
+                            </div>
+                            <div class="modality-checkbox ${dayData.modalities.legs ? 'checked' : ''}" onclick="toggleModality('legs')">
+                                <input type="checkbox" id="check-legs" ${dayData.modalities.legs ? 'checked' : ''}>
+                                <label for="check-legs">💪 LEGS</label>
+                            </div>
+                            <div class="modality-checkbox ${dayData.modalities.track ? 'checked' : ''}" onclick="toggleModality('track')">
+                                <input type="checkbox" id="check-track" ${dayData.modalities.track ? 'checked' : ''}>
+                                <label for="check-track">🏃 TRACK</label>
+                            </div>
+                            <div class="modality-checkbox ${dayData.modalities.bike ? 'checked' : ''}" onclick="toggleModality('bike')">
+                                <input type="checkbox" id="check-bike" ${dayData.modalities.bike ? 'checked' : ''}>
+                                <label for="check-bike">🚴 BIKE</label>
+                            </div>
+                            <div class="modality-checkbox ${dayData.modalities.bjj ? 'checked' : ''}" onclick="toggleModality('bjj')">
+                                <input type="checkbox" id="check-bjj" ${dayData.modalities.bjj ? 'checked' : ''}>
+                                <label for="check-bjj">🥋 BJJ</label>
+                            </div>
+                            <div class="modality-checkbox ${dayData.modalities.walking ? 'checked' : ''}" onclick="toggleModality('walking')">
+                                <input type="checkbox" id="check-walking" ${dayData.modalities.walking ? 'checked' : ''}>
+                                <label for="check-walking">🚶 WALKING</label>
+                            </div>
+                        </div>
+                        
+                        <div id="form-chest" class="hidden modality-section"></div>
+                        <div id="form-back" class="hidden modality-section"></div>
+                        <div id="form-legs" class="hidden modality-section"></div>
+                        <div id="form-track" class="hidden modality-section"></div>
+                        <div id="form-bike" class="hidden modality-section"></div>
+                        <div id="form-bjj" class="hidden modality-section"></div>
+                        <div id="form-walking" class="hidden modality-section"></div>
+                        
+                        <button class="save-day-btn" onclick="saveDay('${dateStr}')">✓ SAVE ALL TRAINING & ANALYZE</button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('day-modal').innerHTML = html;
+            document.getElementById('day-modal').classList.remove('hidden');
+            
+            Object.keys(dayData.modalities || {}).forEach(type => {
+                if (dayData.modalities[type]) {
+                    showModalityForm(type, dayData.modalities[type]);
+                }
+            });
+        }
+        
+        function toggleModality(type) {
+            const checkbox = document.getElementById('check-' + type);
+            checkbox.checked = !checkbox.checked;
+            
+            const container = checkbox.parentElement;
+            container.classList.toggle('checked');
+            
+            if (checkbox.checked) {
+                showModalityForm(type);
+            } else {
+                document.getElementById('form-' + type).classList.add('hidden');
+            }
+        }
+        
+        function showModalityForm(type, data = null) {
+            const form = document.getElementById('form-' + type);
+            form.classList.remove('hidden');
+            
+            if (type === 'chest' || type === 'back' || type === 'legs') {
+                form.innerHTML = generateWeightForm(type, data);
+                if (!exerciseCounters[type]) exerciseCounters[type] = 0;
+                if (data && data.exercises) {
+                    // Load existing exercises
+                } else {
+                    addExercise(type);
+                }
+            } else if (type === 'track') {
+                form.innerHTML = generateTrackForm(data);
+            } else if (type === 'bike') {
+                form.innerHTML = generateBikeForm(data);
+                if (!setCounters['bike']) setCounters['bike'] = 0;
+                // Add initial intervals
+                addBikeInterval();
+                addBikeInterval();
+                addBikeInterval();
+            } else if (type === 'bjj') {
+                form.innerHTML = generateBJJForm(data);
+            } else if (type === 'walking') {
+                form.innerHTML = generateWalkingForm(data);
+            }
+        }
+        
+        // ========== WEIGHT FORM GENERATOR ==========
+        function generateWeightForm(type, data) {
             return `
-            <div class="modality-checkbox ${checked?'checked':''}">
-              <input id="check-${m}" type="checkbox" ${checked?'checked':''} aria-label="${m.toUpperCase()}">
-              <label for="check-${m}">${iconFor(m)} ${m.toUpperCase()}</label>
-            </div>`;
-          }).join('')}
-        </div>
+                <h2>💪 ${type.toUpperCase()} TRAINING</h2>
+                <div class="section-content">
+                    <button class="rpe-btn" onclick="showRPEGuide()">❓ RPE REFERENCE GUIDE</button>
+                    
+                    <div id="${type}-exercises"></div>
+                    
+                    <button class="add-exercise-btn" onclick="addExercise('${type}')">+ ADD EXERCISE</button>
+                    
+                    <h3 style="color: #00ccff; margin-top: 30px; margin-bottom: 15px;">Session Details:</h3>
+                    
+                    <div class="question">
+                        <label>Overall feeling:</label>
+                        <select id="${type}-feeling">
+                            <option value="">Choose...</option>
+                            <option value="great">Great - Strong & energized</option>
+                            <option value="good">Good - Felt solid</option>
+                            <option value="tired">Tired - Low energy</option>
+                            <option value="beat">Beat Up - Sore & exhausted</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Sleep last night (hours):</label>
+                        <input type="number" id="${type}-sleep" step="0.5" placeholder="7.5" value="${data && data.sleep || ''}">
+                    </div>
+                    
+                    <div class="upload-zone" id="${type}-upload" onclick="document.getElementById('${type}-hr').click()">
+                        📊 Upload Polar HR Monitor Screenshot (optional)
+                    </div>
+                    <input type="file" id="${type}-hr" accept="image/*" style="display: none;" onchange="handleHRUpload('${type}', event)">
+                    <img id="${type}-hr-preview" class="hr-preview hidden">
+                </div>
+            `;
+        }
+        
+        function addExercise(type) {
+            exerciseCounters[type]++;
+            const exId = `${type}-ex${exerciseCounters[type]}`;
+            setCounters[exId] = { warmup: 0, working: 0 };
+            
+            const html = `
+                <div class="exercise-block" id="${exId}">
+                    <input type="text" class="exercise-name" placeholder="Exercise name (e.g., Bench Press, Squat)">
+                    
+                    <select class="muscle-select">
+                        <option value="">Select muscle group...</option>
+                        <option value="chest">Chest (pecs, front delts)</option>
+                        <option value="back">Back (lats, traps, rear delts)</option>
+                        <option value="shoulders">Shoulders (delts)</option>
+                        <option value="biceps">Biceps</option>
+                        <option value="triceps">Triceps</option>
+                        <option value="quads">Quads (front thighs)</option>
+                        <option value="hamstrings">Hamstrings (back thighs)</option>
+                        <option value="glutes">Glutes</option>
+                        <option value="calves">Calves</option>
+                        <option value="core">Core (abs, obliques)</option>
+                    </select>
+                    
+                    <div class="set-label">WARM-UP SETS</div>
+                    <div id="${exId}-warmup"></div>
+                    <button class="add-btn" onclick="addSet('${exId}', 'warmup')">+ Add Warm-up</button>
+                    
+                    <div class="set-label">WORKING SETS</div>
+                    <div id="${exId}-working"></div>
+                    <button class="add-btn" onclick="addSet('${exId}', 'working')">+ Add Working Set</button>
+                </div>
+            `;
+            
+            document.getElementById(type + '-exercises').insertAdjacentHTML('beforeend', html);
+            addSet(exId, 'warmup');
+            addSet(exId, 'warmup');
+            addSet(exId, 'working');
+            addSet(exId, 'working');
+            addSet(exId, 'working');
+        }
+        
+        function addSet(exId, type) {
+            setCounters[exId][type]++;
+            const setId = `${exId}-${type}${setCounters[exId][type]}`;
+            const html = `
+                <div class="set-row" id="${setId}">
+                    <input type="number" placeholder="Weight" class="${type}-weight">
+                    <input type="number" placeholder="Reps" class="${type}-reps">
+                    <input type="number" placeholder="RPE" class="${type}-rpe" step="0.5" ${type === 'warmup' ? 'style="display:none"' : ''}>
+                    <button class="delete-btn" onclick="deleteSet('${setId}')">✕</button>
+                </div>
+            `;
+            document.getElementById(`${exId}-${type}`).insertAdjacentHTML('beforeend', html);
+        }
+        
+        function deleteSet(setId) {
+            document.getElementById(setId).remove();
+        }
+        
+        // ========== OTHER FORM GENERATORS ==========
+        function generateTrackForm(data) {
+            return `
+                <h2>🏃 TRACK / PLYOMETRICS</h2>
+                <div class="section-content">
+                    <div class="question">
+                        <label>Total contacts (estimate all plyometric contacts):</label>
+                        <input type="number" id="track-contacts" placeholder="300" value="${data && data.contacts || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Number of max effort jumps:</label>
+                        <input type="number" id="track-max-jumps" placeholder="10" value="${data && data.maxJumps || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Number of sprints:</label>
+                        <input type="number" id="track-sprints" placeholder="5" value="${data && data.sprints || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Ground feel:</label>
+                        <select id="track-ground">
+                            <option value="">Choose...</option>
+                            <option value="bouncy">Bouncy - Reactive & springy</option>
+                            <option value="normal">Normal - Average feel</option>
+                            <option value="heavy">Heavy - Sluggish & flat</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Energy level:</label>
+                        <select id="track-energy">
+                            <option value="">Choose...</option>
+                            <option value="high">High - Explosive power</option>
+                            <option value="moderate">Moderate - Decent output</option>
+                            <option value="low">Low - Struggling</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Achilles/calf status:</label>
+                        <select id="track-achilles">
+                            <option value="">Choose...</option>
+                            <option value="fresh">Fresh - No issues</option>
+                            <option value="tight">Tight - Some tension</option>
+                            <option value="sore">Sore - Notable discomfort</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Sleep last night (hours):</label>
+                        <input type="number" id="track-sleep" step="0.5" placeholder="7.5" value="${data && data.sleep || ''}">
+                    </div>
+                    
+                    <div class="upload-zone" id="track-upload" onclick="document.getElementById('track-hr').click()">
+                        📊 Upload Polar HR Monitor Screenshot (optional)
+                    </div>
+                    <input type="file" id="track-hr" accept="image/*" style="display: none;" onchange="handleHRUpload('track', event)">
+                    <img id="track-hr-preview" class="hr-preview hidden">
+                </div>
+            `;
+        }
+        
+        function generateBikeForm(data) {
+            if (!setCounters['bike']) setCounters['bike'] = 0;
+            
+            return `
+                <h2>🚴 ASSAULT BIKE</h2>
+                <div class="section-content">
+                    <button class="rpe-btn" onclick="showRPEGuide()">❓ RPE REFERENCE GUIDE</button>
+                    
+                    <div class="question">
+                        <label>Protocol:</label>
+                        <select id="bike-protocol">
+                            <option value="">Choose...</option>
+                            <option value="peak-rpm">Peak RPM Sprints</option>
+                            <option value="zone5">Zone 5 Intervals</option>
+                            <option value="alternating">Alternating Pace</option>
+                            <option value="steady">Steady State</option>
+                        </select>
+                    </div>
+                    
+                    <div class="set-label" style="margin-top: 25px;">INTERVALS / SETS</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 40px; gap: 8px; margin-bottom: 8px; color: #888; font-size: 13px; font-weight: bold;">
+                        <div>RPM</div>
+                        <div>Duration (sec)</div>
+                        <div>Rest (sec)</div>
+                        <div>RPE</div>
+                        <div></div>
+                    </div>
+                    <div id="bike-intervals"></div>
+                    <button class="add-btn" onclick="addBikeInterval()">+ Add Interval</button>
+                    
+                    <h3 style="color: #00ccff; margin-top: 30px; margin-bottom: 15px;">Session Details:</h3>
+                    
+                    <div class="question">
+                        <label>Breathing quality:</label>
+                        <select id="bike-breathing">
+                            <option value="">Choose...</option>
+                            <option value="strong">Strong - Controlled breathing</option>
+                            <option value="moderate">Moderate - Some struggle</option>
+                            <option value="labored">Labored - Very difficult</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Overall feeling:</label>
+                        <select id="bike-feeling">
+                            <option value="">Choose...</option>
+                            <option value="great">Great</option>
+                            <option value="good">Good</option>
+                            <option value="tired">Tired</option>
+                            <option value="beat">Beat up</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Sleep last night (hours):</label>
+                        <input type="number" id="bike-sleep" step="0.5" placeholder="7.5" value="${data && data.sleep || ''}">
+                    </div>
+                    
+                    <div class="upload-zone" id="bike-upload" onclick="document.getElementById('bike-hr').click()">
+                        📊 Upload Polar HR Monitor Screenshot (HIGHLY RECOMMENDED)
+                    </div>
+                    <input type="file" id="bike-hr" accept="image/*" style="display: none;" onchange="handleHRUpload('bike', event)">
+                    <img id="bike-hr-preview" class="hr-preview hidden">
+                </div>
+            `;
+        }
+        
+        function addBikeInterval() {
+            setCounters['bike']++;
+            const intervalId = `bike-int${setCounters['bike']}`;
+            
+            const html = `
+                <div class="set-row" id="${intervalId}" style="grid-template-columns: 1fr 1fr 1fr 1fr 40px; margin-bottom: 10px;">
+                    <input type="number" placeholder="RPM" class="bike-rpm" style="font-weight: bold;">
+                    <input type="number" placeholder="Duration (sec)" class="bike-duration">
+                    <input type="number" placeholder="Rest (sec)" class="bike-rest">
+                    <input type="number" placeholder="RPE" class="bike-rpe" step="0.5">
+                    <button class="delete-btn" onclick="deleteBikeInterval('${intervalId}')">✕</button>
+                </div>
+            `;
+            
+            document.getElementById('bike-intervals').insertAdjacentHTML('beforeend', html);
+        }
+        
+        function deleteBikeInterval(intervalId) {
+            document.getElementById(intervalId).remove();
+        }
+        
+        function generateBJJForm(data) {
+            return `
+                <h2>🥋 JIU JITSU</h2>
+                <div class="section-content">
+                    <div class="question">
+                        <label>Spar time (minutes):</label>
+                        <input type="number" id="bjj-time" placeholder="45" value="${data && data.time || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Intensity:</label>
+                        <select id="bjj-intensity">
+                            <option value="">Choose...</option>
+                            <option value="high">High - Hard rolling</option>
+                            <option value="medium">Medium - Flow rolling</option>
+                            <option value="light">Light - Technique only</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Weight before (lbs):</label>
+                        <input type="number" id="bjj-weight-before" step="0.1" placeholder="180.0" value="${data && data.weightBefore || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Weight after (lbs):</label>
+                        <input type="number" id="bjj-weight-after" step="0.1" placeholder="177.0" value="${data && data.weightAfter || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Overall feeling:</label>
+                        <select id="bjj-feeling">
+                            <option value="">Choose...</option>
+                            <option value="great">Great</option>
+                            <option value="good">Good</option>
+                            <option value="tired">Tired</option>
+                            <option value="beat">Beat up</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Sleep last night (hours):</label>
+                        <input type="number" id="bjj-sleep" step="0.5" placeholder="7.5" value="${data && data.sleep || ''}">
+                    </div>
+                    
+                    <div class="upload-zone" id="bjj-upload" onclick="document.getElementById('bjj-hr').click()">
+                        📊 Upload Polar HR Monitor Screenshot (optional)
+                    </div>
+                    <input type="file" id="bjj-hr" accept="image/*" style="display: none;" onchange="handleHRUpload('bjj', event)">
+                    <img id="bjj-hr-preview" class="hr-preview hidden">
+                </div>
+            `;
+        }
+        
+        function generateWalkingForm(data) {
+            return `
+                <h2>🚶 WALKING / RECOVERY</h2>
+                <div class="section-content">
+                    <p style="color: #888; margin-bottom: 20px;">Active recovery through walking with HR monitoring</p>
+                    
+                    <div class="question">
+                        <label>Duration (minutes):</label>
+                        <input type="number" id="walking-duration" placeholder="30" value="${data && data.duration || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Distance (miles):</label>
+                        <input type="number" id="walking-distance" step="0.1" placeholder="2.5" value="${data && data.distance || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Average pace (min/mile):</label>
+                        <input type="number" id="walking-pace" step="0.1" placeholder="12.0" value="${data && data.pace || ''}">
+                    </div>
+                    
+                    <div class="question">
+                        <label>Terrain:</label>
+                        <select id="walking-terrain">
+                            <option value="">Choose...</option>
+                            <option value="flat">Flat - Level ground</option>
+                            <option value="hills">Hills - Moderate elevation</option>
+                            <option value="steep">Steep - Significant incline</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question">
+                        <label>Purpose:</label>
+                        <select id="walking-purpose">
+                            <option value="">Choose...</option>
+                            <option value="recovery">Active Recovery</option>
+                            <option value="zone2">Zone 2 Cardio</option>
+                            <option value="general">General Activity</option>
+                        </select>
+                    </div>
+                    
+                    <div class="upload-zone" id="walking-upload" onclick="document.getElementById('walking-hr').click()">
+                        📊 Upload Polar HR Monitor Screenshot (RECOMMENDED for Zone 2 tracking)
+                    </div>
+                    <input type="file" id="walking-hr" accept="image/*" style="display: none;" onchange="handleHRUpload('walking', event)">
+                    <img id="walking-hr-preview" class="hr-preview hidden">
+                </div>
+            `;
+        }
+        
+        // ========== HR UPLOAD & AI ANALYSIS ==========
+        let hrData = {};
+        
+        async function handleHRUpload(type, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const preview = document.getElementById(type + '-hr-preview');
+            const uploadZone = document.getElementById(type + '-upload');
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+                uploadZone.classList.add('has-file');
+                uploadZone.innerHTML = '📊 HR Data Uploaded - Analyzing with AI...';
+            };
+            reader.readAsDataURL(file);
+            
+            // AI Analysis
+            try {
+                const base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const base64 = reader.result.split(",")[1];
+                        resolve(base64);
+                    };
+                    reader.onerror = () => reject(new Error("Failed to read file"));
+                    reader.readAsDataURL(file);
+                });
+                
+                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        model: "claude-sonnet-4-20250514",
+                        max_tokens: 1000,
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    {
+                                        type: "image",
+                                        source: {
+                                            type: "base64",
+                                            media_type: "image/jpeg",
+                                            data: base64Data,
+                                        }
+                                    },
+                                    {
+                                        type: "text",
+                                        text: `Analyze this Polar heart rate monitor graph. Extract the following data and respond ONLY with valid JSON (no markdown, no other text):
 
-        <div id="form-chest" class="hidden modality-section"></div>
-        <div id="form-back" class="hidden modality-section"></div>
-        <div id="form-legs" class="hidden modality-section"></div>
-        <div id="form-track" class="hidden modality-section"></div>
-        <div id="form-bike" class="hidden modality-section"></div>
-        <div id="form-bjj" class="hidden modality-section"></div>
-        <div id="form-walking" class="hidden modality-section"></div>
-
-        <button class="save-day-btn" onclick="saveDay('${dateStr}')">✓ SAVE ALL TRAINING & ANALYZE</button>
-      </div>
-    </div>
-  `;
-  const host = document.getElementById('day-modal');
-  host.innerHTML = modal;
-  host.classList.remove('hidden');
-
-  // Wire modality toggles (prevent double-toggles)
-  document.querySelectorAll('#modality-boxes .modality-checkbox').forEach((box, idx)=>{
-    const input = box.querySelector('input');
-    const type = ['chest','back','legs','track','bike','bjj','walking'][idx];
-    const sync = (checked)=>{
-      box.classList.toggle('checked', checked);
-      if (checked) showModalityForm(type, dayData.modalities[type] || null);
-      else {
-        // hide and drop transient ui
-        const sec = document.getElementById('form-'+type);
-        if (sec) { sec.classList.add('hidden'); sec.innerHTML=''; }
-      }
-    };
-    // Click anywhere toggles input once
-    box.addEventListener('click', (e)=>{
-      if (e.target.tagName.toLowerCase() !== 'input'){
-        input.checked = !input.checked;
-      }
-      sync(input.checked);
-    });
-    // If re-opening day, hydrate UI
-    if (input.checked) sync(true);
-  });
-}
-function iconFor(t){
-  return ({chest:'💪',back:'💪',legs:'🦵',track:'🏃',bike:'🚴',bjj:'🥋',walking:'🚶'})[t] || '•';
-}
-
-/* --------- Modality Sections & Hydration --------- */
-function showModalityForm(type, data=null){
-  const el = document.getElementById('form-'+type);
-  el.classList.remove('hidden');
-
-  if (['chest','back','legs'].includes(type)){
-    el.innerHTML = weightFormHTML(type, data);
-    if (!exerciseCounters[type]) exerciseCounters[type]=0;
-
-    const mount = document.getElementById(`${type}-exercises`);
-    if (data?.exercises?.length){
-      data.exercises.forEach(ex=>{
-        const id = addExercise(type, ex);
-        // add warmups/working according to ex.workingSets length; we only store working by design
-        // Already created by addExercise; now hydrate values
-      });
-    }else{
-      addExercise(type); // starter
-    }
-    // hydrate feeling/sleep and HR preview
-    if (data){
-      const f = document.getElementById(`${type}-feeling`); if (f) f.value = data.feeling||'';
-      const s = document.getElementById(`${type}-sleep`);   if (s) s.value = data.sleep||'';
-      if (data.hrPreviewSrc){
-        const prev = document.getElementById(`${type}-hr-preview`);
-        const zone = document.getElementById(`${type}-upload`);
-        prev.src = data.hrPreviewSrc; prev.classList.remove('hidden');
-        zone.classList.add('has-file');
-        zone.innerHTML = data.hrSummary || '📊 HR data attached';
-      }
-    }
-  } else if (type==='track'){
-    el.innerHTML = trackFormHTML(data);
-    hydrateCommonPreview('track', data);
-  } else if (type==='bike'){
-    el.innerHTML = bikeFormHTML(data);
-    hydrateCommonPreview('bike', data);
-  } else if (type==='bjj'){
-    el.innerHTML = bjjFormHTML(data);
-    hydrateCommonPreview('bjj', data);
-  } else if (type==='walking'){
-    el.innerHTML = walkingFormHTML(data);
-    hydrateCommonPreview('walking', data);
-  }
-}
-function hydrateCommonPreview(type, data){
-  if (data?.hrPreviewSrc){
-    const prev = document.getElementById(`${type}-hr-preview`);
-    const zone = document.getElementById(`${type}-upload`);
-    prev.src = data.hrPreviewSrc; prev.classList.remove('hidden');
-    zone.classList.add('has-file');
-    zone.innerHTML = data.hrSummary || '📊 HR data attached';
-  }
-}
-
-/* ------------ Weight Form & Sets ------------ */
-function weightFormHTML(type, data){
-  return `
-    <h2>💪 ${type.toUpperCase()} TRAINING</h2>
-    <div class="row" style="margin-bottom:10px">
-      <button class="rpe-btn" onclick="showRPEGuide()">❓ RPE GUIDE</button>
-    </div>
-    <div id="${type}-exercises"></div>
-    <button class="add-exercise-btn" onclick="addExercise('${type}')">+ ADD EXERCISE</button>
-    <h3 style="color:#00ccff;margin-top:18px;margin-bottom:10px">Session Details</h3>
-    <label class="set-label">Overall feeling</label>
-    <select id="${type}-feeling">
-      <option value="">Choose…</option>
-      <option value="great">Great</option>
-      <option value="good">Good</option>
-      <option value="tired">Tired</option>
-      <option value="beat">Beat Up</option>
-    </select>
-    <label class="set-label">Sleep last night (hours)</label>
-    <input type="number" id="${type}-sleep" step="0.5" placeholder="7.5" value="${(data&&data.sleep)||''}">
-    <div class="upload-zone" id="${type}-upload" onclick="document.getElementById('${type}-hr').click()">📊 Upload Polar HR Screenshot (optional)</div>
-    <input type="file" id="${type}-hr" accept="image/*" class="hidden" onchange="handleHRUpload('${type}',event)">
-    <img id="${type}-hr-preview" class="hr-preview hidden" alt="HR preview">
-  `;
-}
-function addExercise(type, existing=null){
-  exerciseCounters[type] = (exerciseCounters[type]||0) + 1;
-  const exId = `${type}-ex${exerciseCounters[type]}`;
-  setCounters[exId] = { warmup:0, working:0 };
-  const blockHTML = `
-    <div class="exercise-block" id="${exId}">
-      <input type="text" class="exercise-name" placeholder="Exercise name (e.g., Bench Press)" value="${existing?.name||''}">
-      <select class="muscle-select">
-        <option value="">Select muscle group…</option>
-        ${[
-          ['chest','Chest (pecs, front delts)'],
-          ['back','Back (lats, traps, rear delts)'],
-          ['shoulders','Shoulders (delts)'],
-          ['biceps','Biceps'],['triceps','Triceps'],
-          ['quads','Quads'],['hamstrings','Hamstrings'],['glutes','Glutes'],
-          ['calves','Calves'],['core','Core']
-        ].map(([v,l])=>`<option value="${v}" ${existing?.muscleGroup===v?'selected':''}>${l}</option>`).join('')}
-      </select>
-
-      <div class="set-label">WARM-UP SETS</div>
-      <div id="${exId}-warmup"></div>
-      <button class="add-btn" onclick="addSet('${exId}','warmup')">+ Add Warm-up</button>
-
-      <div class="set-label">WORKING SETS</div>
-      <div id="${exId}-working"></div>
-      <button class="add-btn" onclick="addSet('${exId}','working')">+ Add Working Set</button>
-    </div>
-  `;
-  document.getElementById(`${type}-exercises`).insertAdjacentHTML('beforeend', blockHTML);
-  // default rows
-  if (!existing){
-    addSet(exId,'warmup'); addSet(exId,'warmup');
-    addSet(exId,'working'); addSet(exId,'working'); addSet(exId,'working');
-  } else {
-    // Warmups remain empty by design; hydrate working sets
-    (existing.workingSets||[]).forEach(s=>{
-      const rowId = addSet(exId,'working');
-      const row = document.getElementById(rowId);
-      row.querySelector('.working-weight').value = s.weight ?? '';
-      row.querySelector('.working-reps').value   = s.reps ?? '';
-      row.querySelector('.working-rpe').value    = s.rpe ?? '';
-    });
-  }
-  return exId;
-}
-function addSet(exId, kind){
-  setCounters[exId][kind] += 1;
-  const n = setCounters[exId][kind];
-  const rowId = `${exId}-${kind}${n}`;
-  const cls = `${kind}-weight ${kind==='working'?'working-weight':''}`;
-  const clsR = `${kind}-reps ${kind==='working'?'working-reps':''}`;
-  const clsE = `${kind}-rpe ${kind==='working'?'working-rpe':''}`;
-  const hideRPE = kind==='warmup' ? 'style="display:none"' : '';
-  const html = `
-    <div class="set-row" id="${rowId}">
-      <input type="number" placeholder="Weight" class="${cls}">
-      <input type="number" placeholder="Reps" class="${clsR}">
-      <input type="number" placeholder="RPE" class="${clsE}" step="0.5" ${hideRPE}>
-      <button class="delete-btn" onclick="document.getElementById('${rowId}').remove()">✕</button>
-    </div>
-  `;
-  document.getElementById(`${exId}-${kind}`).insertAdjacentHTML('beforeend', html);
-  return rowId;
-}
-
-/* ------------ Other Modality Forms ------------ */
-function trackFormHTML(d){return `
-  <h2>🏃 TRACK / PLYOMETRICS</h2>
-  <label class="set-label">Total contacts (all plyos)</label>
-  <input type="number" id="track-contacts" placeholder="300" value="${d?.contacts||''}">
-  <label class="set-label">Max-effort jumps</label>
-  <input type="number" id="track-max-jumps" placeholder="10" value="${d?.maxJumps||''}">
-  <label class="set-label">Sprints</label>
-  <input type="number" id="track-sprints" placeholder="5" value="${d?.sprints||''}">
-  <label class="set-label">Ground feel</label>
-  <select id="track-ground">
-    ${opts(['','bouncy','normal','heavy'], d?.ground)}
-  </select>
-  <label class="set-label">Energy</label>
-  <select id="track-energy">
-    ${opts(['','high','moderate','low'], d?.energy)}
-  </select>
-  <label class="set-label">Achilles/calf</label>
-  <select id="track-achilles">
-    ${opts(['','fresh','tight','sore'], d?.achilles)}
-  </select>
-  <label class="set-label">Sleep (h)</label>
-  <input type="number" id="track-sleep" step="0.5" placeholder="7.5" value="${d?.sleep||''}">
-  <div class="upload-zone" id="track-upload" onclick="document.getElementById('track-hr').click()">📊 Upload Polar HR (optional)</div>
-  <input type="file" id="track-hr" accept="image/*" class="hidden" onchange="handleHRUpload('track',event)">
-  <img id="track-hr-preview" class="hr-preview hidden" alt="HR preview">
-`;}
-function bikeFormHTML(d){return `
-  <h2>🚴 ASSAULT BIKE</h2>
-  <label class="set-label">Protocol</label>
-  <select id="bike-protocol">
-    ${sel([['','Choose…'],['peak-rpm','Peak RPM Sprints'],['zone5','Zone 5 Intervals'],['alternating','Alternating Pace'],['steady','Steady State']], d?.protocol)}
-  </select>
-  <label class="set-label">Total time (min)</label>
-  <input type="number" id="bike-time" placeholder="20" value="${d?.time||''}">
-  <label class="set-label">Peak RPM</label>
-  <input type="number" id="bike-rpm" placeholder="120" value="${d?.rpm||''}">
-  <label class="set-label">Intervals</label>
-  <input type="number" id="bike-intervals" placeholder="8" value="${d?.intervals||''}">
-  <label class="set-label">Breathing quality</label>
-  <select id="bike-breathing">
-    ${opts(['','strong','moderate','labored'], d?.breathing)}
-  </select>
-  <label class="set-label">Overall feeling</label>
-  <select id="bike-feeling">
-    ${opts(['','great','good','tired','beat'], d?.feeling)}
-  </select>
-  <label class="set-label">Sleep (h)</label>
-  <input type="number" id="bike-sleep" step="0.5" placeholder="7.5" value="${d?.sleep||''}">
-  <div class="upload-zone" id="bike-upload" onclick="document.getElementById('bike-hr').click()">📊 Upload Polar HR (recommended)</div>
-  <input type="file" id="bike-hr" accept="image/*" class="hidden" onchange="handleHRUpload('bike',event)">
-  <img id="bike-hr-preview" class="hr-preview hidden" alt="HR preview">
-`;}
-function bjjFormHTML(d){return `
-  <h2>🥋 JIU JITSU</h2>
-  <label class="set-label">Spar time (min)</label>
-  <input type="number" id="bjj-time" placeholder="45" value="${d?.time||''}">
-  <label class="set-label">Intensity</label>
-  <select id="bjj-intensity">
-    ${sel([['','Choose…'],['high','High'],['medium','Medium'],['light','Light']], d?.intensity)}
-  </select>
-  <label class="set-label">Weight before (lb)</label>
-  <input type="number" id="bjj-weight-before" step="0.1" placeholder="180.0" value="${d?.weightBefore||''}">
-  <label class="set-label">Weight after (lb)</label>
-  <input type="number" id="bjj-weight-after" step="0.1" placeholder="177.0" value="${d?.weightAfter||''}">
-  <label class="set-label">Overall feeling</label>
-  <select id="bjj-feeling">
-    ${opts(['','great','good','tired','beat'], d?.feeling)}
-  </select>
-  <label class="set-label">Sleep (h)</label>
-  <input type="number" id="bjj-sleep" step="0.5" placeholder="7.5" value="${d?.sleep||''}">
-  <div class="upload-zone" id="bjj-upload" onclick="document.getElementById('bjj-hr').click()">📊 Upload Polar HR (optional)</div>
-  <input type="file" id="bjj-hr" accept="image/*" class="hidden" onchange="handleHRUpload('bjj',event)">
-  <img id="bjj-hr-preview" class="hr-preview hidden" alt="HR preview">
-`;}
-function walkingFormHTML(d){return `
-  <h2>🚶 WALKING / RECOVERY</h2>
-  <label class="set-label">Duration (min)</label>
-  <input type="number" id="walking-duration" placeholder="30" value="${d?.duration||''}">
-  <label class="set-label">Distance (mi)</label>
-  <input type="number" id="walking-distance" step="0.1" placeholder="2.5" value="${d?.distance||''}">
-  <label class="set-label">Avg pace (min/mi)</label>
-  <input type="number" id="walking-pace" step="0.1" placeholder="12.0" value="${d?.pace||''}">
-  <label class="set-label">Terrain</label>
-  <select id="walking-terrain">
-    ${sel([['','Choose…'],['flat','Flat'],['hills','Hills'],['steep','Steep']], d?.terrain)}
-  </select>
-  <label class="set-label">Purpose</label>
-  <select id="walking-purpose">
-    ${sel([['','Choose…'],['recovery','Active Recovery'],['zone2','Zone 2 Cardio'],['general','General Activity']], d?.purpose)}
-  </select>
-  <div class="upload-zone" id="walking-upload" onclick="document.getElementById('walking-hr').click()">📊 Upload Polar HR (optional)</div>
-  <input type="file" id="walking-hr" accept="image/*" class="hidden" onchange="handleHRUpload('walking',event)">
-  <img id="walking-hr-preview" class="hr-preview hidden" alt="HR preview">
-`;}
-
-/* ----------------- HR Upload & (Pluggable) Analysis ----------------- */
-async function handleHRUpload(type, event){
-  const file = event.target.files?.[0]; if (!file) return;
-  const preview = document.getElementById(`${type}-hr-preview`);
-  const zone = document.getElementById(`${type}-upload`);
-
-  const fileURL = await readAsDataURL(file);
-  preview.src = fileURL; preview.classList.remove('hidden');
-  zone.classList.add('has-file'); zone.innerHTML = '📊 HR file attached — Analyzing…';
-
-  try{
-    // Replace analyzeHR() with your own API integration if desired.
-    const analysis = await analyzeHR(file);
-    hrData[type] = analysis;
-    zone.innerHTML = `✓ HR Analysis
-      <br><span style="font-size:12px;color:#00ff88">
-      Peak: ${analysis.peakHR} | Avg: ${analysis.avgHR} | Recovery: ${analysis.recovery}
-      <br>Z5: ${analysis.timeInZone5}m | Z4: ${analysis.timeInZone4}m | Z3: ${analysis.timeInZone3}m
-      </span>`;
-  }catch(e){
-    console.error(e);
-    zone.innerHTML = '⚠️ Attached HR file (local only). No analysis performed.';
-  }
-}
-/** Developer hook: swap this stub with your API call. Must return the JSON object shown. */
-async function analyzeHR(file){
-  // Offline heuristic stub (no network): infer something from file size to keep UI functional.
-  const sizeKB = Math.max(1, Math.round(file.size/1024));
-  const peak = 150 + (sizeKB % 40);             // 150–190
-  const avg  = 120 + (sizeKB % 30);             // 120–150
-  const z5   = (sizeKB % 12);
-  const z4   = (sizeKB % 15);
-  const z3   = (sizeKB % 18);
-  return {
-    peakHR: peak, avgHR: avg,
-    timeInZone5: z5, timeInZone4: z4, timeInZone3: z3, timeInZone2: Math.max(0, 30 - z3),
-    recovery: avg>160 || z5>10 ? 'poor' : (avg>145 ? 'moderate' : 'good'),
-    notes: 'offline-stub'
-  };
-}
-function readAsDataURL(file){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=()=>res(r.result);
-    r.onerror=()=>rej(new Error('read fail'));
-    r.readAsDataURL(file);
-  });
-}
-
-/* ----------------- RPE Guide ----------------- */
-function showRPEGuide(){
-  const html = `
-    <div class="rpe-modal">
-      <div class="rpe-content">
-        <div class="row" style="justify-content:space-between;margin-bottom:8px">
-          <h2 style="color:#00ff88">RPE REFERENCE</h2>
-          <button class="close-btn" onclick="closeRPEGuide()">✕</button>
-        </div>
-        ${rpeRow(10,'0 RIR','Absolute failure')}
-        ${rpeRow(9.5,'0–1 RIR','Maybe 1 more rep')}
-        <div class="rpe-row" style="border:2px solid #ff6b35">${rpeInner(9,'1 RIR','ALMOST FAILURE')}</div>
-        ${rpeRow(8.5,'1–2 RIR','1 for sure, maybe 2')}
-        <div class="rpe-row" style="border:2px solid #00ff88">${rpeInner(8,'2 RIR','OPTIMAL HYPERTROPHY')}</div>
-        ${rpeRow(7.5,'2–3 RIR','Submax')}
-        ${rpeRow(7,'3 RIR','Moderate')}
-        ${rpeRow(6,'4 RIR','Easy/technique')}
-        <p style="color:#666;margin-top:12px;font-size:12px;text-align:center">RIR = Reps In Reserve</p>
-      </div>
-    </div>`;
-  const host = document.getElementById('rpe-modal');
-  host.innerHTML = html; host.classList.remove('hidden');
-}
-function rpeRow(n,rir,desc){ return `<div class="rpe-row">${rpeInner(n,rir,desc)}</div>`; }
-function rpeInner(n,rir,desc){
-  return `<div class="rpe-number">${n}</div><div class="rpe-rir">${rir}</div><div class="rpe-desc">${desc}</div>`;
-}
-function closeRPEGuide(){ document.getElementById('rpe-modal').classList.add('hidden'); }
-
-/* ----------------- Save/Collect ----------------- */
-async function saveDay(dateStr){
-  const data = { modalities:{}, totalCNS:0, totalVolume:0, tss:0, qualities:{} };
-
-  for (const type of ['chest','back','legs','track','bike','bjj','walking']){
-    const cb = document.getElementById('check-'+type);
-    if (!cb) continue;
-    if (cb.checked){
-      const modalityData = await collectModalityData(type);
-      if (modalityData){
-        data.modalities[type] = { ...modalityData, completed:true };
-      }
-    }
-  }
-  if (!Object.keys(data.modalities).length){ alert('Select and complete at least one modality.'); return; }
-
-  // Aggregate day metrics
-  Object.values(data.modalities).forEach(mod=>{
-    data.totalCNS += mod.cnsScore||0;
-    data.totalVolume += mod.volume||0;
-    data.tss += mod.tss||0;
-  });
-
-  data.qualities = analyzeQualities(data.modalities);
-  data.interference = detectInterference(data.modalities, data.qualities);
-
-  // Persist HR previews (for re-open)
-  for (const [type, mod] of Object.entries(data.modalities)){
-    const img = document.getElementById(`${type}-hr-preview`);
-    if (img && !img.classList.contains('hidden')){
-      mod.hrPreviewSrc = img.src;
-      mod.hrSummary = document.getElementById(`${type}-upload`)?.innerHTML || '';
-    }
-  }
-
-  trainingData[dateStr] = data;
-  historicalTSS.push({date:dateStr,tss:data.tss}); if (historicalTSS.length>28) historicalTSS.shift();
-  saveData();
-  displayDayAnalysis(dateStr, data);
-}
-async function collectModalityData(type){
-  const out = { type };
-  if (['chest','back','legs'].includes(type)){
-    const exs = []; const blocks = document.querySelectorAll(`#${type}-exercises .exercise-block`);
-    blocks.forEach(block=>{
-      const name = block.querySelector('.exercise-name')?.value?.trim();
-      const mg   = block.querySelector('.muscle-select')?.value || '';
-      if (!name || !mg) return;
-      const workingSets = [];
-      block.querySelectorAll('.working-weight').forEach((w, i)=>{
-        const weight = parseFloat(w.value)||0;
-        const reps = parseInt(block.querySelectorAll('.working-reps')[i]?.value)||0;
-        const rpe  = parseFloat(block.querySelectorAll('.working-rpe')[i]?.value)||0;
-        if (weight>0 && reps>0) workingSets.push({weight,reps,rpe});
-      });
-      if (workingSets.length) exs.push({ name, muscleGroup: mg, workingSets });
-    });
-    if (!exs.length) return null;
-    out.exercises = exs;
-    out.feeling = document.getElementById(`${type}-feeling`)?.value||'';
-    out.sleep   = parseFloat(document.getElementById(`${type}-sleep`)?.value)||0;
-    out.hrAnalysis = hrData[type]||null;
-    Object.assign(out, calculateWeightMetrics(out));
-  } else if (type==='track'){
-    out.contacts = +document.getElementById('track-contacts')?.value||0;
-    out.maxJumps = +document.getElementById('track-max-jumps')?.value||0;
-    out.sprints  = +document.getElementById('track-sprints')?.value||0;
-    out.ground   = document.getElementById('track-ground')?.value||'';
-    out.energy   = document.getElementById('track-energy')?.value||'';
-    out.achilles = document.getElementById('track-achilles')?.value||'';
-    out.sleep    = +document.getElementById('track-sleep')?.value||0;
-    out.hrAnalysis = hrData[type]||null;
-    Object.assign(out, calculateTrackMetrics(out));
-  } else if (type==='bike'){
-    out.protocol  = document.getElementById('bike-protocol')?.value||'';
-    out.time      = +document.getElementById('bike-time')?.value||0;
-    out.rpm       = +document.getElementById('bike-rpm')?.value||0;
-    out.intervals = +document.getElementById('bike-intervals')?.value||0;
-    out.breathing = document.getElementById('bike-breathing')?.value||'';
-    out.feeling   = document.getElementById('bike-feeling')?.value||'';
-    out.sleep     = +document.getElementById('bike-sleep')?.value||0;
-    out.hrAnalysis = hrData[type]||null;
-    Object.assign(out, calculateBikeMetrics(out));
-  } else if (type==='bjj'){
-    out.time = +document.getElementById('bjj-time')?.value||0;
-    out.intensity = document.getElementById('bjj-intensity')?.value||'';
-    out.weightBefore = +document.getElementById('bjj-weight-before')?.value||0;
-    out.weightAfter  = +document.getElementById('bjj-weight-after')?.value||0;
-    out.weightLoss = +(out.weightBefore - out.weightAfter).toFixed(1);
-    out.feeling = document.getElementById('bjj-feeling')?.value||'';
-    out.sleep   = +document.getElementById('bjj-sleep')?.value||0;
-    out.hrAnalysis = hrData[type]||null;
-    Object.assign(out, calculateBJJMetrics(out));
-  } else if (type==='walking'){
-    out.duration = +document.getElementById('walking-duration')?.value||0;
-    out.distance = +document.getElementById('walking-distance')?.value||0;
-    out.pace     = +document.getElementById('walking-pace')?.value||0;
-    out.terrain  = document.getElementById('walking-terrain')?.value||'';
-    out.purpose  = document.getElementById('walking-purpose')?.value||'';
-    out.hrAnalysis = hrData[type]||null;
-    Object.assign(out, calculateWalkingMetrics(out));
-  }
-  return out;
+{
+  "peakHR": number,
+  "avgHR": number,
+  "timeInZone5": number (minutes in 90-100% max HR),
+  "timeInZone4": number (minutes in 80-90% max HR),
+  "timeInZone3": number (minutes in 70-80% max HR),
+  "timeInZone2": number (minutes in 60-70% max HR),
+  "recovery": "good" | "moderate" | "poor",
+  "notes": "brief analysis"
 }
 
-/* ----------------- Metrics ----------------- */
-function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-function calculateWeightMetrics(data){
-  let cns = 40, vol=0, sumRPE=0, nRPE=0;
-  data.exercises.forEach(ex=>{
-    ex.workingSets.forEach(s=>{
-      vol += (s.weight||0) * (s.reps||0);
-      if (s.rpe){ sumRPE += s.rpe; nRPE++; }
-    });
-  });
-  const avgRPE = nRPE? (sumRPE/nRPE) : 0;
-
-  if (data.feeling==='beat') cns+=20;
-  if (data.feeling==='tired') cns+=12;
-  if (data.feeling==='great') cns-=10;
-
-  if (avgRPE>=9) cns+=15;
-  else if (avgRPE>=8.5) cns+=10;
-  else if (avgRPE<=7) cns-=8;
-
-  if (data.sleep<6.5) cns+=15;
-  else if (data.sleep>=8) cns-=8;
-
-  if (data.hrAnalysis){
-    const hr = data.hrAnalysis;
-    if (hr.avgHR>=160) cns+=12;
-    else if (hr.avgHR>=150) cns+=8;
-    if (hr.recovery==='poor') cns+=10;
-    else if (hr.recovery==='good') cns-=5;
-    if ((hr.timeInZone5||0)>5) cns+=8;
-  }
-
-  const durationMin = 60;                 // default lifting session
-  const intensity = clamp01(avgRPE/10);
-  const tss = Math.round(durationMin * intensity * 100 * 0.1); // scale to practical range
-
-  return { cnsScore: Math.max(0, Math.min(100,cns)), volume: vol, avgRPE:+avgRPE.toFixed(1), tss };
-}
-function calculateTrackMetrics(d){
-  let cns=35;
-  if (d.ground==='heavy') cns+=25;
-  if (d.energy==='low') cns+=18;
-  if (d.achilles==='sore') cns+=25;
-  if (d.contacts>350) cns+=15;
-  if (d.maxJumps>10) cns+=d.maxJumps*2;
-  if (d.sleep<7) cns+=12;
-  if (d.hrAnalysis){
-    const hr=d.hrAnalysis;
-    if (hr.avgHR>=170) cns+=10;
-    if ((hr.timeInZone5||0)>10) cns+=12;
-  }
-  const tss = Math.round(40 + (d.contacts*0.12) + (d.maxJumps*2) + (d.sprints*4));
-  return { cnsScore:Math.max(0,Math.min(100,cns)), volume:0, tss };
-}
-function calculateBikeMetrics(d){
-  let cns=45;
-  if (d.breathing==='labored') cns+=20;
-  if (d.feeling==='beat') cns+=18;
-  if (d.feeling==='tired') cns+=10;
-  if (d.sleep<7) cns+=10;
-  if (d.hrAnalysis){
-    const hr=d.hrAnalysis;
-    if (hr.avgHR>=170) cns+=12;
-    if ((hr.timeInZone5||0)>15) cns+=15;
-    if (hr.recovery==='poor') cns+=8;
-  }
-  const tss = Math.round(d.time*2 + (d.intervals*5) + (d.protocol==='peak-rpm'?20:0));
-  return { cnsScore:Math.max(0,Math.min(100,cns)), volume:0, tss };
-}
-function calculateBJJMetrics(d){
-  let cns=40;
-  const sweat = +d.weightLoss || 0;
-  if (sweat>=4) cns+=20; else if (sweat>=3) cns+=10;
-  if (d.intensity==='high') cns+=15;
-  if (d.feeling==='beat') cns+=20;
-  if (d.feeling==='tired') cns+=12;
-  if (d.sleep<7) cns+=10;
-  if (d.hrAnalysis){
-    const hr=d.hrAnalysis;
-    if (hr.avgHR>=160) cns+=10;
-    if ((hr.timeInZone5||0)>20) cns+=12;
-  }
-  const tss = Math.round(d.time*1.6 + (d.intensity==='high'?30:0));
-  return { cnsScore:Math.max(0,Math.min(100,cns)), volume:0, tss };
-}
-function calculateWalkingMetrics(d){
-  let cns=10;
-  if (d.terrain==='steep') cns+=15; else if (d.terrain==='hills') cns+=8;
-  if (d.purpose==='zone2' && d.hrAnalysis){
-    const hr=d.hrAnalysis;
-    if ((hr.timeInZone3||0)>(hr.timeInZone2||0)) cns+=10;
-  }
-  const tss = Math.round(d.duration*0.5);
-  return { cnsScore:Math.max(0,Math.min(100,cns)), volume:0, tss };
-}
-
-/* ----------------- Qualities & Interference ----------------- */
-function analyzeQualities(modalities){
-  const q = { strength:0, hypertrophy:0, power:0, speed:0, endurance:0 };
-  for (const [type, mod] of Object.entries(modalities)){
-    if (['chest','back','legs'].includes(type)){
-      (mod.exercises||[]).forEach(ex=>{
-        (ex.workingSets||[]).forEach(set=>{
-          if (set.reps<=5){ q.strength += set.reps * (set.rpe||8); }
-          else if (set.reps<=8){
-            q.strength += set.reps*0.6*(set.rpe||8);
-            q.hypertrophy += set.reps*0.4*(set.rpe||8);
-          } else { q.hypertrophy += set.reps * (set.rpe||8); }
-        });
-      });
-    } else if (type==='track'){
-      q.power += (mod.contacts||0)*0.8 + (mod.maxJumps||0)*20;
-      q.speed += (mod.sprints||0)*25;
-    } else if (type==='bike'){
-      q.endurance += (mod.time||0) > 0 ? 80 : 0;
-      if (['zone5','peak-rpm'].includes(mod.protocol)) q.power += 40;
-    } else if (type==='bjj'){
-      q.endurance += 50;
-      if (mod.intensity==='high'){ q.power+=30; q.strength+=20; }
-    } else if (type==='walking'){ q.endurance += 30; }
-  }
-  const total = Object.values(q).reduce((a,b)=>a+b,0);
-  if (total>0){ for (const k in q){ q[k] = Math.round((q[k]/total)*100); } }
-  return q;
-}
-function detectInterference(modalities){
-  const issues=[]; const types = Object.keys(modalities);
-  if (types.includes('legs') && types.includes('track')){
-    issues.push({severity:'critical', message:'Legs + Track same day = Type II fiber overload', impact:'Power output compromised 15–20%', fix:'Separate by ≥48h'});
-  }
-  if (types.includes('bjj') && types.includes('back')){
-    issues.push({severity:'moderate', message:'BJJ + Back = Grip fatigue compounding', impact:'Pulling strength reduced 10–15%', fix:'Use straps or separate'});
-  }
-  if (types.length>=4){
-    issues.push({severity:'high', message:`${types.length} modalities in one day = Extreme volume`, impact:'CNS overload risk', fix:'Split across 2 days / reduce volume'});
-  }
-  return issues;
-}
-
-/* ----------------- Day Analysis UI ----------------- */
-function displayDayAnalysis(dateStr, data){
-  closeModal(); renderCalendar();
-  const list = Object.keys(data.modalities).map(t=>t.toUpperCase()).join(', ');
-  let html = `
-    <div class="modal"><div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-title">✓ Training Saved</div>
-        <button class="close-btn" onclick="closeModal()">✕ Close</button>
-      </div>
-      <div class="success-box">
-        <h3 style="color:#00ff88">TRAINING COMPLETE: ${dateStr}</h3>
-        <p><strong>Modalities:</strong> ${list}</p>
-      </div>
-      <div class="metrics-grid">
-        <div class="metric-card"><div class="metric-value">${Math.round(data.totalCNS)}</div><div class="metric-label">Total CNS Load</div></div>
-        <div class="metric-card"><div class="metric-value">${(data.totalVolume||0).toLocaleString()}</div><div class="metric-label">Volume (lbs)</div></div>
-        <div class="metric-card"><div class="metric-value">${Math.round(data.tss)}</div><div class="metric-label">Training Stress Score</div></div>
-      </div>
-      <div class="info-box">
-        <h3 style="color:#00ccff">TRAINING QUALITIES</h3>
-        ${Object.keys(data.qualities).filter(k=>data.qualities[k]>=15).map(k=>`<p><strong>${cap(k)}:</strong> ${data.qualities[k]}%</p>`).join('')}
-      </div>
-  `;
-  if (data.interference?.length){
-    html += `<div class="warning-box"><h3>⚠️ INTERFERENCE</h3>${
-      data.interference.map(i=>`
-        <div style="margin-bottom:10px">
-          <p><strong>${i.message}</strong></p>
-          <p style="color:#ff7777">Impact: ${i.impact}</p>
-          <p style="color:#00ff88">Fix: ${i.fix}</p>
-        </div>`).join('')
-    }</div>`;
-  }
-  html += `</div></div>`;
-  const host = document.getElementById('day-modal');
-  host.innerHTML = html; host.classList.remove('hidden');
-}
-
-/* ----------------- Weekly Analysis ----------------- */
-function showWeeklyAnalysis(){
-  const end = new Date();
-  const start = new Date(); start.setDate(start.getDate()-6);
-
-  let totalCNS=0,totalVol=0,totalTSS=0,days=0;
-  const dailyCNS=[], dailyTSS=[];
-  for (let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
-    const key = formatDate(d);
-    const day = trainingData[key];
-    if (day && Object.keys(day.modalities||{}).length){
-      days++; totalCNS+=day.totalCNS||0; totalVol+=day.totalVolume||0; totalTSS+=day.tss||0;
-      dailyCNS.push(day.totalCNS||0); dailyTSS.push(day.tss||0);
-    }
-  }
-  const avgCNS = days? Math.round(totalCNS/days) : 0;
-  const avgWeeklyTSS = days? Math.round(totalTSS/days)*7 : 0;
-
-  // Monotony/Strain
-  const mean = avgCNS || 0;
-  const variance = dailyCNS.length ? dailyCNS.reduce((s,v)=>s+Math.pow(v-mean,2),0)/dailyCNS.length : 0;
-  const std = Math.sqrt(variance);
-  const monotony = std>0 ? +(mean/std).toFixed(2) : 0;
-  const strain = Math.round((totalCNS||0) * (monotony||0));
-
-  // A:C ratio over latest 28 days (guarded)
-  const last28 = historicalTSS.slice(-28);
-  let acRatio='—', acWarning=false;
-  if (last28.length>=14){
-    const chronic = last28.reduce((a,b)=>a+(b.tss||0),0) / last28.length;
-    if (chronic>0){
-      acRatio = +((avgWeeklyTSS||0) / chronic).toFixed(2);
-      acWarning = acRatio>1.3;
-    }
-  }
-
-  const html = `
-    <div class="modal"><div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-title">📊 WEEKLY ANALYSIS</div>
-        <button class="close-btn" onclick="closeModal()">✕ Close</button>
-      </div>
-      <p style="color:#888;margin-bottom:14px">${start.toLocaleDateString()} – ${end.toLocaleDateString()}</p>
-      <div class="metrics-grid">
-        <div class="metric-card" style="border-left-color:#00ff88">
-          <div class="metric-value">${(totalVol||0).toLocaleString()}</div><div class="metric-label">Total Volume (lbs)</div>
-        </div>
-        <div class="metric-card" style="border-left-color:#00ccff">
-          <div class="metric-value">${avgCNS}</div><div class="metric-label">Avg Daily CNS</div>
-        </div>
-        <div class="metric-card" style="border-left-color:#ffaa00">
-          <div class="metric-value">${Math.round(totalTSS)}</div><div class="metric-label">Weekly TSS</div>
-        </div>
-        <div class="metric-card" style="border-left-color:${acWarning?'#ff4444':'#ff6b35'}">
-          <div class="metric-value" style="color:${acWarning?'#ff4444':'#00ff88'}">${acRatio}</div><div class="metric-label">Acute:Chronic</div>
-        </div>
-        <div class="metric-card" style="border-left-color:#8a2be2">
-          <div class="metric-value">${monotony}</div><div class="metric-label">Monotony Index</div>
-        </div>
-        <div class="metric-card" style="border-left-color:#ff69b4">
-          <div class="metric-value">${strain}</div><div class="metric-label">Strain Index</div>
-        </div>
-      </div>
-      ${acWarning ? `
-        <div class="warning-box">
-          <h3>⚠️ INJURY RISK WARNING</h3>
-          <p><strong>Acute:Chronic:</strong> ${acRatio} (optimal 0.8–1.3)</p>
-          <p>This week’s load appears elevated vs. your 4-week average.</p>
-          <ul style="margin-left:18px;margin-top:6px">
-            <li>Reduce volume ~15–20% next week</li>
-            <li>Add 1 rest day</li>
-            <li>Prioritize sleep (≥8h), hydration, mobility</li>
-          </ul>
-        </div>` :
-        `<div class="success-box"><h3>✓ TRAINING LOAD OPTIMAL</h3><p>Acute:Chronic within safe band.</p></div>`
-      }
-      <div class="info-box">
-        <h3 style="color:#00ccff">INTERPRETATION</h3>
-        <p><strong>TSS:</strong> proxy of total training load.</p>
-        <p><strong>A:C Ratio:</strong> weekly vs ~4-week mean; >1.5 often risky.</p>
-        <p><strong>Monotony:</strong> lower = better variation; high monotony × high load ⇒ overreaching risk.</p>
-      </div>
-    </div></div>
-  `;
-  const host = document.getElementById('weekly-modal');
-  host.innerHTML = html; host.classList.remove('hidden');
-}
-
-/* ----------------- Utilities & Admin ----------------- */
-function closeModal(){
-  document.getElementById('day-modal').classList.add('hidden');
-  document.getElementById('weekly-modal').classList.add('hidden');
-  hrData = {};
-}
-function duplicateDay(dateStr){
-  const d = trainingData[dateStr];
-  if (!d){ alert('Nothing to duplicate.'); return; }
-  const next = new Date(dateStr); next.setDate(next.getDate()+1);
-  const key = formatDate(next);
-  // deep clone
-  trainingData[key] = JSON.parse(JSON.stringify(d));
-  saveData(); renderCalendar();
-  alert(`Duplicated to ${key}`);
-}
-function clearDay(dateStr){
-  delete trainingData[dateStr];
-  saveData(); renderCalendar(); openDay(dateStr, new Date(dateStr));
-}
-function deleteDay(dateStr){
-  if (!confirm(`Delete all training for ${dateStr}?`)) return;
-  delete trainingData[dateStr];
-  saveData(); renderCalendar(); closeModal();
-}
-function exportAll(){
-  const blob = new Blob([JSON.stringify({trainingData,historicalTSS},null,2)],{type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download='elite-training-export.json'; a.click();
-  URL.revokeObjectURL(url);
-}
-function importAll(file){
-  const fr=new FileReader();
-  fr.onload=()=>{
-    const obj = safeParse(fr.result,{});
-    if (obj.trainingData && obj.historicalTSS){
-      trainingData = obj.trainingData;
-      historicalTSS = obj.historicalTSS;
-      saveData(); renderCalendar();
-      alert('Import successful.');
-    } else {
-      alert('Invalid file.');
-    }
-  };
-  fr.readAsText(file);
-}
-function resetAll(){
-  if (!confirm('This will erase all saved data. Continue?')) return;
-  trainingData={}; historicalTSS=[]; saveData(); renderCalendar();
-}
-function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
-function opts(arr, val){ return arr.map(v=>`<option value="${v}" ${v===val?'selected':''}>${v||'Choose…'}</option>`).join('') }
-function sel(pairs, val){ return pairs.map(([v,l])=>`<option value="${v}" ${v===val?'selected':''}>${l}</option>`).join('') }
-
-/* ----------------- Init & Events ----------------- */
-window.addEventListener('load',()=>{
-  loadData(); renderCalendar();
-  document.getElementById('btn-prev').addEventListener('click', prevMonth);
-  document.getElementById('btn-next').addEventListener('click', nextMonth);
-  document.getElementById('btn-today').addEventListener('click', goToday);
-  document.getElementById('btn-weekly').addEventListener('click', showWeeklyAnalysis);
-  document.getElementById('btn-export').addEventListener('click', exportAll);
-  document.getElementById('btn-reset').addEventListener('click', resetAll);
-  document.getElementById('import-file').addEventListener('change',(e)=>{
-    const f=e.target.files?.[0]; if (f) importAll(f);
-    e.target.value='';
-  });
-});
-</script>
+DO NOT include any text outside the JSON object. Do not use markdown code blocks.`
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                });
+                
+                const data = await response.json();
+                let responseText = data.content[0].text;
+                
+                // Strip any markdown
+                responseText = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+                
+                const hrAnalysis = JSON.parse(responseText);
+                hrData[type] = hrAnalysis;
+                
+                // Display analysis
+                uploadZone.innerHTML = `✓ HR Analysis Complete
+                    <br><span style="font-size: 12px; color: #00ff88;">
+                    Peak: ${hrAnalysis.peakHR} bpm | Avg: ${hrAnalysis.avgHR} bpm | Recovery: ${hrAnalysis.recovery}
+                    <br>Z5: ${hrAnalysis.timeInZone5}min | Z4: ${hrAnalysis.timeInZone4}min | Z3: ${hrAnalysis.timeInZone3}min
+                    </span>`;
+            } catch (error) {
+                console.error("HR Analysis Error:", error);
+                uploadZone.innerHTML = '⚠️ Could not analyze HR data - uploaded but analysis failed';
+            }
+        }
+        
+        // ========== RPE GUIDE ==========
+        function showRPEGuide() {
+            const html = `
+                <div class="rpe-modal">
+                    <div class="rpe-content">
+                        <button class="close-btn" onclick="closeRPEGuide()">✕ Close</button>
+                        <h2 style="color: #00ff88; margin-bottom: 20px; clear: both;">RPE REFERENCE GUIDE</h2>
+                        <p style="color: #aaa; margin-bottom: 20px;">RPE (Rate of Perceived Exertion) = Reps In Reserve (RIR)</p>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">10</div>
+                            <div class="rpe-rir">0 RIR</div>
+                            <div class="rpe-desc">Absolute failure - could NOT do another rep</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">9.5</div>
+                            <div class="rpe-rir">0-1 RIR</div>
+                            <div class="rpe-desc">Maybe 1 more rep - almost certain failure</div>
+                        </div>
+                        
+                        <div class="rpe-row" style="border: 2px solid #ff6b35;">
+                            <div class="rpe-number">9</div>
+                            <div class="rpe-rir">1 RIR</div>
+                            <div class="rpe-desc"><strong>ALMOST FAILURE</strong> - Definitely 1 rep left, not 2</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">8.5</div>
+                            <div class="rpe-rir">1-2 RIR</div>
+                            <div class="rpe-desc">1 rep for sure, maybe 2</div>
+                        </div>
+                        
+                        <div class="rpe-row" style="border: 2px solid #00ff88;">
+                            <div class="rpe-number">8</div>
+                            <div class="rpe-rir">2 RIR</div>
+                            <div class="rpe-desc"><strong>OPTIMAL FOR HYPERTROPHY</strong> - Solid 2 reps left</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">7.5</div>
+                            <div class="rpe-rir">2-3 RIR</div>
+                            <div class="rpe-desc">2 reps for sure, maybe 3</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">7</div>
+                            <div class="rpe-rir">3 RIR</div>
+                            <div class="rpe-desc">Moderate difficulty - 3 reps left</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">6</div>
+                            <div class="rpe-rir">4 RIR</div>
+                            <div class="rpe-desc">Bar speed still fast - 4+ reps left</div>
+                        </div>
+                        
+                        <p style="color: #666; margin-top: 20px; font-size: 13px; text-align: center;">
+                            RIR = Reps In Reserve (how many more reps you could do)
+                        </p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('rpe-modal').innerHTML = html;
+            document.getElementById('rpe-modal').classList.remove('hidden');
+        }
+        
+        function closeRPEGuide() {
+            document.getElementById('rpe-modal').classList.add('hidden');
+        }
+        
+        function closeModal() {
+            document.getElementById('day-modal').classList.add('hidden');
+            document.getElementById('weekly-modal').classList.add('hidden');
+            hrData = {}; // Clear HR data
+        }
+        
+        // ========== SAVE DAY ==========
+        async function saveDay(dateStr) {
+            const data = {
+                modalities: {},
+                totalCNS: 0,
+                totalVolume: 0,
+                tss: 0,
+                qualities: {}
+            };
+            
+            // Collect from each checked modality
+            const modalityTypes = ['chest', 'back', 'legs', 'track', 'bike', 'bjj', 'walking'];
+            
+            for (const type of modalityTypes) {
+                const checkbox = document.getElementById('check-' + type);
+                if (checkbox && checkbox.checked) {
+                    const modalityData = await collectModalityData(type);
+                    if (modalityData) {
+                        data.modalities[type] = modalityData;
+                        data.modalities[type].completed = true;
+                    }
+                }
+            }
+            
+            if (Object.keys(data.modalities).length === 0) {
+                alert('Please select and complete at least one training modality!');
+                return;
+            }
+            
+            // Calculate combined metrics
+            Object.keys(data.modalities).forEach(type => {
+                const mod = data.modalities[type];
+                data.totalCNS += mod.cnsScore || 0;
+                data.totalVolume += mod.volume || 0;
+                data.tss += mod.tss || 0;
+            });
+            
+            // Quality analysis
+            data.qualities = analyzeQualities(data.modalities);
+            
+            // Interference detection
+            data.interference = detectInterference(data.modalities, data.qualities);
+            
+            trainingData[dateStr] = data;
+            historicalTSS.push({ date: dateStr, tss: data.tss });
+            if (historicalTSS.length > 28) historicalTSS.shift();
+            
+            saveData();
+            
+            // Show results
+            displayDayAnalysis(dateStr, data);
+        }
+        
+        async function collectModalityData(type) {
+            const data = { type };
+            
+            if (type === 'chest' || type === 'back' || type === 'legs') {
+                const exercises = [];
+                const exerciseBlocks = document.querySelectorAll(`#${type}-exercises .exercise-block`);
+                
+                exerciseBlocks.forEach(block => {
+                    const name = block.querySelector('.exercise-name').value;
+                    const muscleGroup = block.querySelector('.muscle-select').value;
+                    if (!name || !muscleGroup) return;
+                    
+                    const workingSets = [];
+                    const workingWeights = block.querySelectorAll('.working-weight');
+                    workingWeights.forEach((w, i) => {
+                        const weight = parseFloat(w.value) || 0;
+                        const reps = parseInt(block.querySelectorAll('.working-reps')[i].value) || 0;
+                        const rpe = parseFloat(block.querySelectorAll('.working-rpe')[i].value) || 0;
+                        if (weight > 0 && reps > 0) {
+                            workingSets.push({ weight, reps, rpe });
+                        }
+                    });
+                    
+                    if (workingSets.length > 0) {
+                        exercises.push({ name, muscleGroup, workingSets });
+                    }
+                });
+                
+                if (exercises.length === 0) return null;
+                
+                data.exercises = exercises;
+                data.feeling = document.getElementById(type + '-feeling')?.value || '';
+                data.sleep = parseFloat(document.getElementById(type + '-sleep')?.value) || 0;
+                data.hrAnalysis = hrData[type] || null;
+                
+                // Calculate metrics
+                const metrics = calculateWeightMetrics(data);
+                Object.assign(data, metrics);
+                
+            } else if (type === 'track') {
+                data.contacts = parseInt(document.getElementById('track-contacts')?.value) || 0;
+                data.maxJumps = parseInt(document.getElementById('track-max-jumps')?.value) || 0;
+                data.sprints = parseInt(document.getElementById('track-sprints')?.value) || 0;
+                data.ground = document.getElementById('track-ground')?.value || '';
+                data.energy = document.getElementById('track-energy')?.value || '';
+                data.achilles = document.getElementById('track-achilles')?.value || '';
+                data.sleep = parseFloat(document.getElementById('track-sleep')?.value) || 0;
+                data.hrAnalysis = hrData[type] || null;
+                
+                const metrics = calculateTrackMetrics(data);
+                Object.assign(data, metrics);
+                
+            } else if (type === 'bike') {
+                data.protocol = document.getElementById('bike-protocol')?.value || '';
+                
+                // Collect intervals
+                const intervals = [];
+                const rpmInputs = document.querySelectorAll('.bike-rpm');
+                rpmInputs.forEach((input, i) => {
+                    const rpm = parseInt(input.value) || 0;
+                    const duration = parseInt(document.querySelectorAll('.bike-duration')[i].value) || 0;
+                    const rest = parseInt(document.querySelectorAll('.bike-rest')[i].value) || 0;
+                    const rpe = parseFloat(document.querySelectorAll('.bike-rpe')[i].value) || 0;
+                    
+                    if (rpm > 0 && duration > 0) {
+                        intervals.push({ rpm, duration, rest, rpe });
+                    }
+                });
+                
+                if (intervals.length === 0) return null;
+                
+                data.intervals = intervals;
+                data.breathing = document.getElementById('bike-breathing')?.value || '';
+                data.feeling = document.getElementById('bike-feeling')?.value || '';
+                data.sleep = parseFloat(document.getElementById('bike-sleep')?.value) || 0;
+                data.hrAnalysis = hrData[type] || null;
+                
+                const metrics = calculateBikeMetrics(data);
+                Object.assign(data, metrics);
+                
+            } else if (type === 'bjj') {
+                data.time = parseInt(document.getElementById('bjj-time')?.value) || 0;
+                data.intensity = document.getElementById('bjj-intensity')?.value || '';
+                data.weightBefore = parseFloat(document.getElementById('bjj-weight-before')?.value) || 0;
+                data.weightAfter = parseFloat(document.getElementById('bjj-weight-after')?.value) || 0;
+                data.weightLoss = (data.weightBefore - data.weightAfter).toFixed(1);
+                data.feeling = document.getElementById('bjj-feeling')?.value || '';
+                data.sleep = parseFloat(document.getElementById('bjj-sleep')?.value) || 0;
+                data.hrAnalysis = hrData[type] || null;
+                
+                const metrics = calculateBJJMetrics(data);
+                Object.assign(data, metrics);
+                
+            } else if (type === 'walking') {
+                data.duration = parseInt(document.getElementById('walking-duration')?.value) || 0;
+                data.distance = parseFloat(document.getElementById('walking-distance')?.value) || 0;
+                data.pace = parseFloat(document.getElementById('walking-pace')?.value) || 0;
+                data.terrain = document.getElementById('walking-terrain')?.value || '';
+                data.purpose = document.getElementById('walking-purpose')?.value || '';
+                data.hrAnalysis = hrData[type] || null;
+                
+                const metrics = calculateWalkingMetrics(data);
+                Object.assign(data, metrics);
+            }
+            
+            return data;
+        }
+        
+        // ========== METRICS CALCULATIONS ==========
+        function calculateWeightMetrics(data) {
+            let cnsScore = 40;
+            let totalVolume = 0;
+            let avgRPE = 0;
+            let rpeCount = 0;
+            
+            data.exercises.forEach(ex => {
+                ex.workingSets.forEach(set => {
+                    totalVolume += set.weight * set.reps;
+                    if (set.rpe) {
+                        avgRPE += set.rpe;
+                        rpeCount++;
+                    }
+                });
+            });
+            
+            avgRPE = rpeCount > 0 ? avgRPE / rpeCount : 0;
+            
+            // CNS scoring
+            if (data.feeling === 'beat') cnsScore += 20;
+            if (data.feeling === 'tired') cnsScore += 12;
+            if (data.feeling === 'great') cnsScore -= 10;
+            
+            if (avgRPE >= 9) cnsScore += 15;
+            if (avgRPE >= 8.5) cnsScore += 10;
+            if (avgRPE <= 7) cnsScore -= 8;
+            
+            if (data.sleep < 6.5) cnsScore += 15;
+            if (data.sleep >= 8) cnsScore -= 8;
+            
+            // HR integration
+            if (data.hrAnalysis) {
+                const hr = data.hrAnalysis;
+                if (hr.avgHR >= 160) cnsScore += 12;
+                else if (hr.avgHR >= 150) cnsScore += 8;
+                
+                if (hr.recovery === 'poor') cnsScore += 10;
+                else if (hr.recovery === 'good') cnsScore -= 5;
+                
+                if (hr.timeInZone5 > 5) cnsScore += 8;
+            }
+            
+            // TSS calculation
+            const duration = 60; // Assume 60 min
+            const intensity = avgRPE / 10;
+            const tss = duration * intensity * 100;
+            
+            return {
+                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                volume: totalVolume,
+                avgRPE: avgRPE.toFixed(1),
+                tss: Math.round(tss)
+            };
+        }
+        
+        function calculateTrackMetrics(data) {
+            let cnsScore = 35;
+            
+            if (data.ground === 'heavy') cnsScore += 25;
+            if (data.energy === 'low') cnsScore += 18;
+            if (data.achilles === 'sore') cnsScore += 25;
+            if (data.contacts > 350) cnsScore += 15;
+            if (data.maxJumps > 10) cnsScore += data.maxJumps * 2;
+            if (data.sleep < 7) cnsScore += 12;
+            
+            if (data.hrAnalysis) {
+                const hr = data.hrAnalysis;
+                if (hr.avgHR >= 170) cnsScore += 10;
+                if (hr.timeInZone5 > 10) cnsScore += 12;
+            }
+            
+            const tss = 60 + (data.contacts * 0.15) + (data.maxJumps * 2);
+            
+            return {
+                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                volume: 0,
+                tss: Math.round(tss)
+            };
+        }
+        
+        function calculateBikeMetrics(data) {
+            let cnsScore = 45;
+            
+            // Calculate from intervals
+            let totalTime = 0;
+            let avgRPM = 0;
+            let peakRPM = 0;
+            let avgRPE = 0;
+            let rpeCount = 0;
+            
+            if (data.intervals && data.intervals.length > 0) {
+                data.intervals.forEach(int => {
+                    totalTime += int.duration / 60; // Convert to minutes
+                    avgRPM += int.rpm;
+                    if (int.rpm > peakRPM) peakRPM = int.rpm;
+                    if (int.rpe) {
+                        avgRPE += int.rpe;
+                        rpeCount++;
+                    }
+                });
+                avgRPM = avgRPM / data.intervals.length;
+                if (rpeCount > 0) avgRPE = avgRPE / rpeCount;
+            }
+            
+            // CNS based on RPM and RPE
+            if (peakRPM >= 130) cnsScore += 15;
+            else if (peakRPM >= 120) cnsScore += 10;
+            
+            if (avgRPE >= 9) cnsScore += 12;
+            else if (avgRPE >= 8) cnsScore += 8;
+            
+            if (data.breathing === 'labored') cnsScore += 20;
+            else if (data.breathing === 'moderate') cnsScore += 10;
+            
+            if (data.feeling === 'beat') cnsScore += 18;
+            else if (data.feeling === 'tired') cnsScore += 10;
+            
+            if (data.sleep < 7) cnsScore += 10;
+            
+            if (data.hrAnalysis) {
+                const hr = data.hrAnalysis;
+                if (hr.avgHR >= 170) cnsScore += 12;
+                if (hr.timeInZone5 > 15) cnsScore += 15;
+                if (hr.recovery === 'poor') cnsScore += 8;
+            }
+            
+            // TSS calculation
+            const tss = totalTime * 2 + (data.intervals.length * 5) + (avgRPE * 8);
+            
+            return {
+                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                volume: 0,
+                tss: Math.round(tss),
+                peakRPM: peakRPM,
+                avgRPM: Math.round(avgRPM),
+                totalTime: totalTime.toFixed(1)
+            };
+        }
+        
+        function calculateBJJMetrics(data) {
+            let cnsScore = 40;
+            const sweat = parseFloat(data.weightLoss) || 0;
+            
+            if (sweat >= 4) cnsScore += 20;
+            else if (sweat >= 3) cnsScore += 10;
+            
+            if (data.intensity === 'high') cnsScore += 15;
+            if (data.feeling === 'beat') cnsScore += 20;
+            if (data.feeling === 'tired') cnsScore += 12;
+            if (data.sleep < 7) cnsScore += 10;
+            
+            if (data.hrAnalysis) {
+                const hr = data.hrAnalysis;
+                if (hr.avgHR >= 160) cnsScore += 10;
+                if (hr.timeInZone5 > 20) cnsScore += 12;
+            }
+            
+            const tss = data.time * 1.5 + (data.intensity === 'high' ? 30 : 0);
+            
+            return {
+                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                volume: 0,
+                tss: Math.round(tss)
+            };
+        }
+        
+        function calculateWalkingMetrics(data) {
+            let cnsScore = 10; // Very low CNS stress
+            
+            if (data.terrain === 'steep') cnsScore += 15;
+            else if (data.terrain === 'hills') cnsScore += 8;
+            
+            if (data.purpose === 'zone2' && data.hrAnalysis) {
+                const hr = data.hrAnalysis;
+                if (hr.timeInZone3 > hr.timeInZone2) {
+                    cnsScore += 10; // Went too hard for recovery
+                }
+            }
+            
+            const tss = data.duration * 0.5; // Low stress
+            
+            return {
+                cnsScore: Math.max(0, Math.min(100, cnsScore)),
+                volume: 0,
+                tss: Math.round(tss)
+            };
+        }
+        
+        // ========== QUALITY ANALYSIS ==========
+        function analyzeQualities(modalities) {
+            const qualities = {
+                strength: 0,
+                hypertrophy: 0,
+                power: 0,
+                speed: 0,
+                endurance: 0
+            };
+            
+            Object.keys(modalities).forEach(type => {
+                const mod = modalities[type];
+                
+                if (type === 'chest' || type === 'back' || type === 'legs') {
+                    if (mod.exercises) {
+                        mod.exercises.forEach(ex => {
+                            ex.workingSets.forEach(set => {
+                                if (set.reps <= 5) {
+                                    qualities.strength += set.reps * (set.rpe || 8);
+                                } else if (set.reps <= 8) {
+                                    qualities.strength += set.reps * 0.6 * (set.rpe || 8);
+                                    qualities.hypertrophy += set.reps * 0.4 * (set.rpe || 8);
+                                } else {
+                                    qualities.hypertrophy += set.reps * (set.rpe || 8);
+                                }
+                            });
+                        });
+                    }
+                } else if (type === 'track') {
+                    qualities.power = mod.contacts * 0.8;
+                    qualities.power += (mod.maxJumps || 0) * 20;
+                    qualities.speed = (mod.sprints || 0) * 25;
+                } else if (type === 'bike') {
+                    qualities.endurance = 80;
+                    if (mod.protocol === 'zone5' || mod.protocol === 'peak-rpm') {
+                        qualities.power = 40;
+                    }
+                } else if (type === 'bjj') {
+                    qualities.endurance = 50;
+                    if (mod.intensity === 'high') {
+                        qualities.power = 30;
+                        qualities.strength = 20;
+                    }
+                } else if (type === 'walking') {
+                    qualities.endurance = 30; // Low intensity recovery
+                }
+            });
+            
+            // Normalize
+            const total = Object.values(qualities).reduce((a, b) => a + b, 0);
+            if (total > 0) {
+                Object.keys(qualities).forEach(q => {
+                    qualities[q] = Math.round((qualities[q] / total) * 100);
+                });
+            }
+            
+            return qualities;
+        }
+        
+        function detectInterference(modalities, qualities) {
+            const issues = [];
+            const types = Object.keys(modalities);
+            
+            // Check for problematic combinations
+            if (types.includes('legs') && types.includes('track')) {
+                issues.push({
+                    severity: 'critical',
+                    message: 'Legs + Track same day = Type II fiber overload',
+                    impact: 'Power output compromised 15-20%, injury risk elevated',
+                    fix: 'Separate by 48hr minimum'
+                });
+            }
+            
+            if (types.includes('bjj') && types.includes('back')) {
+                issues.push({
+                    severity: 'moderate',
+                    message: 'BJJ + Back = Grip fatigue compounding',
+                    impact: 'Pulling strength reduced 10-15%',
+                    fix: 'Use straps or separate modalities'
+                });
+            }
+            
+            if (types.length >= 4) {
+                issues.push({
+                    severity: 'high',
+                    message: `${types.length} modalities in one day = Extreme volume`,
+                    impact: 'CNS overload, recovery compromised',
+                    fix: 'Consider splitting across 2 days or reducing volume'
+                });
+            }
+            
+            return issues;
+        }
+        
+        // ========== DAY ANALYSIS DISPLAY ==========
+        function displayDayAnalysis(dateStr, data) {
+            closeModal();
+            renderCalendar();
+            
+            const modalityList = Object.keys(data.modalities).map(t => t.toUpperCase()).join(', ');
+            
+            let html = `
+                <div class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">✓ Training Saved!</div>
+                            <button class="close-btn" onclick="closeModal()">✕ Close</button>
+                        </div>
+                        
+                        <div class="success-box">
+                            <h3 style="color: #00ff88;">TRAINING COMPLETE: ${dateStr}</h3>
+                            <p><strong>Modalities:</strong> ${modalityList}</p>
+                        </div>
+                        
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-value">${data.totalCNS}</div>
+                                <div class="metric-label">Total CNS Load</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${data.totalVolume.toLocaleString()}</div>
+                                <div class="metric-label">Volume (lbs)</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${data.tss}</div>
+                                <div class="metric-label">Training Stress Score</div>
+                            </div>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3 style="color: #00ccff;">TRAINING QUALITIES</h3>
+                            ${Object.keys(data.qualities).filter(q => data.qualities[q] >= 20).map(q => 
+                                `<p><strong>${q.charAt(0).toUpperCase() + q.slice(1)}:</strong> ${data.qualities[q]}%</p>`
+                            ).join('')}
+                        </div>
+            `;
+            
+            if (data.interference && data.interference.length > 0) {
+                html += `<div class="warning-box"><h3>⚠️ INTERFERENCE DETECTED</h3>`;
+                data.interference.forEach(issue => {
+                    html += `
+                        <div style="margin-bottom: 15px;">
+                            <p><strong>${issue.message}</strong></p>
+                            <p style="color: #ff6666;">Impact: ${issue.impact}</p>
+                            <p style="color: #00ff88;">Fix: ${issue.fix}</p>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            
+            html += `</div></div>`;
+            
+            document.getElementById('day-modal').innerHTML = html;
+            document.getElementById('day-modal').classList.remove('hidden');
+        }
+        
+        // ========== WEEKLY ANALYSIS ==========
+        function showWeeklyAnalysis() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 6);
+            
+            let totalCNS = 0;
+            let totalVolume = 0;
+            let totalTSS = 0;
+            let days = 0;
+            const dailyCNS = [];
+            const dailyTSS = [];
+            
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const dateStr = formatDate(d);
+                const dayData = trainingData[dateStr];
+                
+                if (dayData && dayData.modalities && Object.keys(dayData.modalities).length > 0) {
+                    days++;
+                    totalCNS += dayData.totalCNS || 0;
+                    totalVolume += dayData.totalVolume || 0;
+                    totalTSS += dayData.tss || 0;
+                    dailyCNS.push(dayData.totalCNS || 0);
+                    dailyTSS.push(dayData.tss || 0);
+                }
+            }
+            
+            const avgCNS = days > 0 ? Math.round(totalCNS / days) : 0;
+            const avgTSS = days > 0 ? Math.round(totalTSS / days) : 0;
+            
+            // Monotony
+            const mean = avgCNS;
+            const variance = dailyCNS.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (dailyCNS.length || 1);
+            const stdDev = Math.sqrt(variance);
+            const monotony = stdDev > 0 ? (mean / stdDev).toFixed(2) : 0;
+            
+            // Strain
+            const strain = Math.round(totalCNS * parseFloat(monotony));
+            
+            // A:C Ratio
+            const last28Days = historicalTSS.slice(-28);
+            let acRatio = '—';
+            let acWarning = false;
+            if (last28Days.length >= 14) {
+                const chronicTSS = last28Days.reduce((a, b) => a + b.tss, 0) / last28Days.length;
+                if (chronicTSS > 0) {
+                    acRatio = (avgTSS * 7 / chronicTSS).toFixed(2);
+                    if (parseFloat(acRatio) > 1.3) acWarning = true;
+                }
+            }
+            
+            const html = `
+                <div class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">📊 WEEKLY ANALYSIS</div>
+                            <button class="close-btn" onclick="closeModal()">✕ Close</button>
+                        </div>
+                        
+                        <p style="color: #888; margin-bottom: 30px;">${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}</p>
+                        
+                        <h3 style="color: #00ff88; margin-bottom: 15px;">ELITE METRICS:</h3>
+                        
+                        <div class="metrics-grid">
+                            <div class="metric-card" style="border-left-color: #00ff88;">
+                                <div class="metric-value">${totalVolume.toLocaleString()}</div>
+                                <div class="metric-label">Total Volume (lbs)</div>
+                            </div>
+                            <div class="metric-card" style="border-left-color: #00ccff;">
+                                <div class="metric-value">${avgCNS}</div>
+                                <div class="metric-label">Avg Daily CNS</div>
+                            </div>
+                            <div class="metric-card" style="border-left-color: #ffaa00;">
+                                <div class="metric-value">${totalTSS}</div>
+                                <div class="metric-label">Weekly TSS</div>
+                            </div>
+                            <div class="metric-card" style="border-left-color: ${acWarning ? '#ff4444' : '#ff6b35'};">
+                                <div class="metric-value" style="color: ${acWarning ? '#ff4444' : '#00ff88'};">${acRatio}</div>
+                                <div class="metric-label">Acute:Chronic Ratio</div>
+                            </div>
+                            <div class="metric-card" style="border-left-color: #8a2be2;">
+                                <div class="metric-value">${monotony}</div>
+                                <div class="metric-label">Monotony Index</div>
+                            </div>
+                            <div class="metric-card" style="border-left-color: #ff69b4;">
+                                <div class="metric-value">${strain}</div>
+                                <div class="metric-label">Strain Index</div>
+                            </div>
+                        </div>
+                        
+                        ${acWarning ? `
+                            <div class="warning-box">
+                                <h3>⚠️ INJURY RISK WARNING</h3>
+                                <p><strong>Acute:Chronic ratio: ${acRatio}</strong> (optimal: 0.8-1.3)</p>
+                                <p>This week's training load is ${((parseFloat(acRatio) - 1) * 100).toFixed(0)}% above your recent average</p>
+                                <p><strong>RECOMMENDATION:</strong></p>
+                                <ul style="margin-left: 20px; margin-top: 10px;">
+                                    <li>Reduce volume by 15-20% next week</li>
+                                    <li>Add 1-2 extra rest days</li>
+                                    <li>Focus on recovery (sleep 8+ hours, nutrition, mobility)</li>
+                                    <li>Monitor for overtraining symptoms (elevated resting HR, mood changes, persistent fatigue)</li>
+                                </ul>
+                            </div>
+                        ` : `
+                            <div class="success-box">
+                                <h3>✓ TRAINING LOAD OPTIMAL</h3>
+                                <p>Your acute:chronic ratio (${acRatio}) is within safe ranges</p>
+                                <p>Continue current training approach while monitoring recovery</p>
+                            </div>
+                        `}
+                        
+                        <div class="info-box">
+                            <h3 style="color: #00ccff;">INTERPRETATION:</h3>
+                            <p><strong>TSS:</strong> Training Stress Score measures total training load</p>
+                            <p><strong>A:C Ratio:</strong> This week vs 4-week average. Optimal: 0.8-1.3. Above 1.5 = high injury risk</p>
+                            <p><strong>Monotony:</strong> Lower = better variation. High monotony + high strain = overtraining risk</p>
+                            <p><strong>Strain:</strong> Weekly load × monotony. Monitor trends, avoid sudden spikes</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('weekly-modal').innerHTML = html;
+            document.getElementById('weekly-modal').classList.remove('hidden');
+        }
+        
+        // ========== INIT ==========
+        window.onload = function() {
+            loadData();
+            renderCalendar();
+        };
+    </script>
 </body>
 </html>
