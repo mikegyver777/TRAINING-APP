@@ -601,11 +601,24 @@
                 <button onclick="nextMonth()">Next ›</button>
             </div>
             <div class="month-title" id="month-title">NOVEMBER 2025</div>
-            <div>
+            <div style="display: flex; gap: 10px;">
                 <button class="analysis-btn" onclick="showWeeklyAnalysis()">
                     📊 WEEKLY ANALYSIS
                 </button>
+                <button class="analysis-btn" onclick="showHelp()" style="background: #333;">
+                    ❓ HELP
+                </button>
             </div>
+        </div>
+        
+        <div style="background: #1a1a1a; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #333;">
+            <p style="color: #888; font-size: 13px; margin: 0;">
+                <strong style="color: #00ff88;">Quick Tips:</strong> 
+                Click empty day to log workout • 
+                Click completed day to view details • 
+                Right-click or Ctrl+Click for detailed view • 
+                Type exercise name for auto-progression suggestions
+            </p>
         </div>
         
         <div class="calendar-grid" id="calendar-grid"></div>
@@ -622,6 +635,7 @@
         let historicalTSS = []; // Last 28 days for A:C ratio
         let exerciseCounters = {};
         let setCounters = {};
+        let exerciseHistory = {}; // { 'Bench Press': [{date, sets: [{weight, reps, rpe}]}] }
         
         // Load/Save
         function loadData() {
@@ -630,11 +644,86 @@
             
             const savedTSS = localStorage.getItem('historicalTSS');
             if (savedTSS) historicalTSS = JSON.parse(savedTSS);
+            
+            const savedHistory = localStorage.getItem('exerciseHistory');
+            if (savedHistory) exerciseHistory = JSON.parse(savedHistory);
         }
         
         function saveData() {
             localStorage.setItem('eliteTrainingData', JSON.stringify(trainingData));
             localStorage.setItem('historicalTSS', JSON.stringify(historicalTSS));
+            localStorage.setItem('exerciseHistory', JSON.stringify(exerciseHistory));
+        }
+        
+        // Update exercise history
+        function updateExerciseHistory(dateStr, exercises) {
+            exercises.forEach(ex => {
+                if (!exerciseHistory[ex.name]) {
+                    exerciseHistory[ex.name] = [];
+                }
+                exerciseHistory[ex.name].push({
+                    date: dateStr,
+                    muscleGroup: ex.muscleGroup,
+                    sets: ex.workingSets
+                });
+                // Keep last 20 sessions per exercise
+                if (exerciseHistory[ex.name].length > 20) {
+                    exerciseHistory[ex.name].shift();
+                }
+            });
+        }
+        
+        // Get last workout for exercise
+        function getLastWorkout(exerciseName) {
+            if (!exerciseHistory[exerciseName] || exerciseHistory[exerciseName].length === 0) {
+                return null;
+            }
+            return exerciseHistory[exerciseName][exerciseHistory[exerciseName].length - 1];
+        }
+        
+        // Suggest progression
+        function suggestProgression(exerciseName, lastSets) {
+            if (!lastSets || lastSets.length === 0) return null;
+            
+            // Get best set (highest weight × reps)
+            const bestSet = lastSets.reduce((best, set) => {
+                const volume = set.weight * set.reps;
+                const bestVolume = best.weight * best.reps;
+                return volume > bestVolume ? set : best;
+            });
+            
+            const suggestions = [];
+            
+            // Strategy 1: Same weight, more reps
+            if (bestSet.reps < 12) {
+                suggestions.push({
+                    type: 'volume',
+                    weight: bestSet.weight,
+                    reps: bestSet.reps + 1,
+                    desc: 'Add 1 rep (volume progression)'
+                });
+            }
+            
+            // Strategy 2: More weight, same reps
+            const increment = bestSet.weight >= 200 ? 5 : 2.5;
+            suggestions.push({
+                type: 'intensity',
+                weight: bestSet.weight + increment,
+                reps: bestSet.reps,
+                desc: `Add ${increment} lbs (intensity progression)`
+            });
+            
+            // Strategy 3: Deload if RPE was too high
+            if (bestSet.rpe >= 9.5) {
+                suggestions.push({
+                    type: 'deload',
+                    weight: Math.round(bestSet.weight * 0.9),
+                    reps: bestSet.reps,
+                    desc: 'Deload 10% (RPE too high last time)'
+                });
+            }
+            
+            return { lastBest: bestSet, suggestions };
         }
         
         // ========== CALENDAR ==========
@@ -721,10 +810,171 @@
                 else if (totalCNS < 75) indicator.classList.add('cns-moderate');
                 else indicator.classList.add('cns-high');
                 cell.appendChild(indicator);
+                
+                // Historical view (right-click or ctrl+click)
+                cell.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    viewHistoricalDay(dateStr, date, dayData);
+                });
+                
+                // Regular click opens edit
+                cell.onclick = (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        viewHistoricalDay(dateStr, date, dayData);
+                    } else {
+                        openDay(dateStr, date);
+                    }
+                };
+            } else {
+                // No workout yet - open for new entry
+                cell.onclick = () => openDay(dateStr, date);
             }
             
-            cell.onclick = () => openDay(dateStr, date);
             grid.appendChild(cell);
+        }
+        
+        // View completed workout details
+        function viewHistoricalDay(dateStr, date, dayData) {
+            let html = `
+                <div class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">📋 ${date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                            <button class="close-btn" onclick="closeModal()">✕ Close</button>
+                        </div>
+                        
+                        <div class="success-box">
+                            <h3 style="color: #00ff88;">TRAINING COMPLETED</h3>
+                            <p><strong>Modalities:</strong> ${Object.keys(dayData.modalities).map(t => t.toUpperCase()).join(', ')}</p>
+                        </div>
+                        
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-value">${dayData.totalCNS}</div>
+                                <div class="metric-label">Total CNS Load</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${dayData.totalVolume.toLocaleString()}</div>
+                                <div class="metric-label">Volume (lbs)</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${dayData.tss}</div>
+                                <div class="metric-label">Training Stress Score</div>
+                            </div>
+                        </div>
+            `;
+            
+            // Show details for each modality
+            Object.keys(dayData.modalities).forEach(type => {
+                const mod = dayData.modalities[type];
+                html += `<div class="modality-section">`;
+                html += `<h2>${type.toUpperCase()}</h2>`;
+                
+                if (type === 'chest' || type === 'back' || type === 'legs') {
+                    if (mod.exercises) {
+                        mod.exercises.forEach(ex => {
+                            html += `
+                                <div style="background: #0a0a0a; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                                    <h3 style="color: #00ccff;">${ex.name}</h3>
+                                    <p style="color: #888;">Muscle: ${ex.muscleGroup}</p>
+                                    <div style="margin-top: 10px;">
+                            `;
+                            ex.workingSets.forEach((set, i) => {
+                                html += `<p style="color: #aaa;">Set ${i+1}: ${set.weight} lbs × ${set.reps} reps @ RPE ${set.rpe || 'N/A'}</p>`;
+                            });
+                            html += `</div></div>`;
+                        });
+                    }
+                    html += `<p style="color: #aaa; margin-top: 10px;">Feeling: ${mod.feeling} | Sleep: ${mod.sleep}hr | CNS: ${mod.cnsScore}</p>`;
+                    
+                } else if (type === 'bike') {
+                    if (mod.intervals) {
+                        html += `<p style="color: #00ccff; margin-bottom: 10px;">Protocol: ${mod.protocol}</p>`;
+                        mod.intervals.forEach((int, i) => {
+                            html += `<p style="color: #aaa;">Int ${i+1}: ${int.rpm} RPM × ${int.duration}s (rest ${int.rest}s) @ RPE ${int.rpe || 'N/A'}</p>`;
+                        });
+                        html += `<p style="color: #888; margin-top: 10px;">Peak RPM: ${mod.peakRPM} | Avg RPM: ${mod.avgRPM}</p>`;
+                    }
+                    html += `<p style="color: #aaa; margin-top: 10px;">Feeling: ${mod.feeling} | CNS: ${mod.cnsScore}</p>`;
+                    
+                } else if (type === 'track') {
+                    html += `
+                        <p style="color: #aaa;">Contacts: ${mod.contacts}</p>
+                        <p style="color: #aaa;">Max Jumps: ${mod.maxJumps}</p>
+                        <p style="color: #aaa;">Sprints: ${mod.sprints}</p>
+                        <p style="color: #aaa;">Ground: ${mod.ground} | Energy: ${mod.energy}</p>
+                        <p style="color: #aaa; margin-top: 10px;">CNS: ${mod.cnsScore}</p>
+                    `;
+                    
+                } else if (type === 'bjj') {
+                    html += `
+                        <p style="color: #aaa;">Time: ${mod.time} min | Intensity: ${mod.intensity}</p>
+                        <p style="color: #aaa;">Weight loss: ${mod.weightLoss} lbs</p>
+                        <p style="color: #aaa; margin-top: 10px;">CNS: ${mod.cnsScore}</p>
+                    `;
+                    
+                } else if (type === 'walking') {
+                    html += `
+                        <p style="color: #aaa;">Duration: ${mod.duration} min | Distance: ${mod.distance} miles</p>
+                        <p style="color: #aaa;">Pace: ${mod.pace} min/mile | Terrain: ${mod.terrain}</p>
+                        <p style="color: #aaa; margin-top: 10px;">CNS: ${mod.cnsScore}</p>
+                    `;
+                }
+                
+                // HR Analysis if available
+                if (mod.hrAnalysis) {
+                    const hr = mod.hrAnalysis;
+                    html += `
+                        <div style="background: rgba(0, 255, 136, 0.1); padding: 12px; border-radius: 6px; margin-top: 10px; border: 1px solid #00ff88;">
+                            <p style="color: #00ff88; font-weight: bold;">❤️ HR ANALYSIS:</p>
+                            <p style="color: #aaa;">Peak: ${hr.peakHR} bpm | Avg: ${hr.avgHR} bpm</p>
+                            <p style="color: #aaa;">Z5: ${hr.timeInZone5}min | Z4: ${hr.timeInZone4}min | Z3: ${hr.timeInZone3}min | Z2: ${hr.timeInZone2}min</p>
+                            <p style="color: #aaa;">Recovery: ${hr.recovery}</p>
+                            ${hr.notes ? `<p style="color: #888; font-size: 13px; margin-top: 5px;">${hr.notes}</p>` : ''}
+                        </div>
+                    `;
+                }
+                
+                html += `</div>`;
+            });
+            
+            // Qualities
+            if (dayData.qualities && Object.keys(dayData.qualities).length > 0) {
+                html += `
+                    <div class="info-box">
+                        <h3 style="color: #00ccff;">TRAINING QUALITIES</h3>
+                        ${Object.keys(dayData.qualities).filter(q => dayData.qualities[q] >= 15).map(q => 
+                            `<p><strong>${q.charAt(0).toUpperCase() + q.slice(1)}:</strong> ${dayData.qualities[q]}%</p>`
+                        ).join('')}
+                    </div>
+                `;
+            }
+            
+            // Interference warnings
+            if (dayData.interference && dayData.interference.length > 0) {
+                html += `<div class="warning-box"><h3>⚠️ INTERFERENCE DETECTED</h3>`;
+                dayData.interference.forEach(issue => {
+                    html += `
+                        <div style="margin-bottom: 15px;">
+                            <p><strong>${issue.message}</strong></p>
+                            <p style="color: #ff6666;">Impact: ${issue.impact}</p>
+                            <p style="color: #00ff88;">Fix: ${issue.fix}</p>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            
+            html += `
+                        <button onclick="openDay('${dateStr}', new Date('${date}'))" style="background: #00ccff; color: #000; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px;">
+                            ✏️ EDIT THIS WORKOUT
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('day-modal').innerHTML = html;
+            document.getElementById('day-modal').classList.remove('hidden');
         }
         
         function formatDate(date) {
@@ -910,7 +1160,11 @@
             
             const html = `
                 <div class="exercise-block" id="${exId}">
-                    <input type="text" class="exercise-name" placeholder="Exercise name (e.g., Bench Press, Squat)">
+                    <input type="text" class="exercise-name" placeholder="Exercise name (e.g., Bench Press, Squat)" onblur="checkExerciseHistory('${exId}', this.value)">
+                    
+                    <div id="${exId}-history" class="hidden" style="background: rgba(0, 255, 136, 0.1); padding: 15px; border-radius: 8px; margin: 10px 0; border: 1px solid #00ff88;">
+                        <!-- Auto-progression suggestions appear here -->
+                    </div>
                     
                     <select class="muscle-select">
                         <option value="">Select muscle group...</option>
@@ -942,6 +1196,56 @@
             addSet(exId, 'working');
             addSet(exId, 'working');
             addSet(exId, 'working');
+        }
+        
+        function checkExerciseHistory(exId, exerciseName) {
+            if (!exerciseName || exerciseName.trim() === '') return;
+            
+            const historyDiv = document.getElementById(exId + '-history');
+            const lastWorkout = getLastWorkout(exerciseName);
+            
+            if (!lastWorkout) {
+                historyDiv.classList.add('hidden');
+                return;
+            }
+            
+            const progression = suggestProgression(exerciseName, lastWorkout.sets);
+            if (!progression) return;
+            
+            let html = `
+                <div style="color: #00ff88; font-weight: bold; margin-bottom: 10px;">
+                    📊 LAST WORKOUT (${lastWorkout.date}):
+                </div>
+                <div style="color: #aaa; margin-bottom: 10px;">
+                    Best Set: ${progression.lastBest.weight} lbs × ${progression.lastBest.reps} reps @ RPE ${progression.lastBest.rpe || 'N/A'}
+                </div>
+                <div style="color: #00ccff; font-weight: bold; margin-bottom: 8px;">
+                    💡 PROGRESSION OPTIONS:
+                </div>
+            `;
+            
+            progression.suggestions.forEach((sug, i) => {
+                html += `
+                    <button onclick="applyProgression('${exId}', ${sug.weight}, ${sug.reps})" 
+                            style="background: #2a2a2a; border: 1px solid #00ff88; color: white; padding: 8px 12px; border-radius: 6px; margin: 4px; cursor: pointer; font-size: 13px;">
+                        ${sug.weight} lbs × ${sug.reps} reps - ${sug.desc}
+                    </button>
+                `;
+            });
+            
+            historyDiv.innerHTML = html;
+            historyDiv.classList.remove('hidden');
+        }
+        
+        function applyProgression(exId, weight, reps) {
+            // Auto-fill the first working set with suggested progression
+            const workingDiv = document.getElementById(exId + '-working');
+            const firstSet = workingDiv.querySelector('.set-row');
+            if (firstSet) {
+                firstSet.querySelector('.working-weight').value = weight;
+                firstSet.querySelector('.working-reps').value = reps;
+                alert(`✓ Applied: ${weight} lbs × ${reps} reps to Set 1`);
+            }
         }
         
         function addSet(exId, type) {
@@ -1391,6 +1695,112 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
             hrData = {}; // Clear HR data
         }
         
+        function showHelp() {
+            const html = `
+                <div class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">📖 ELITE ATHLETE TRACKER - USER GUIDE</div>
+                            <button class="close-btn" onclick="closeModal()">✕ Close</button>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3 style="color: #00ff88;">🎯 CORE FEATURES</h3>
+                            <p><strong>Hybrid Training Days:</strong> Log multiple modalities on the same day (Chest + Legs + Bike + BJJ, etc.)</p>
+                            <p><strong>7 Modalities:</strong> Chest, Back, Legs, Track/Plyos, Assault Bike, BJJ, Walking</p>
+                            <p><strong>AI HR Analysis:</strong> Upload Polar screenshots for automatic HR zone extraction</p>
+                            <p><strong>Elite Metrics:</strong> TSS, A:C Ratio, Fitness-Fatigue Model, Monotony, Strain</p>
+                            <p><strong>Auto-Progression:</strong> System suggests next weights based on your history</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3 style="color: #00ccff;">📅 CALENDAR USAGE</h3>
+                            <p><strong>Empty Day:</strong> Click to log new workout</p>
+                            <p><strong>Completed Day:</strong> Click to view/edit workout</p>
+                            <p><strong>Right-Click or Ctrl+Click:</strong> View detailed historical analysis</p>
+                            <p><strong>CNS Indicators:</strong> Green (low), Yellow (moderate), Red (high CNS load)</p>
+                            <p><strong>Badges:</strong> Show which modalities you completed</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3 style="color: #ff6b35;">💪 LOGGING WORKOUTS</h3>
+                            <p><strong>Select Modalities:</strong> Check all training you did that day</p>
+                            <p><strong>Exercises:</strong> Type name → system shows last workout + progression suggestions</p>
+                            <p><strong>RPE:</strong> Use 6-10 scale (click "RPE GUIDE" for reference)</p>
+                            <p><strong>Bike Intervals:</strong> Log RPM, duration, rest, and RPE per interval</p>
+                            <p><strong>HR Upload:</strong> Upload Polar screenshot → AI extracts zones automatically</p>
+                            <p><strong>Save:</strong> One button saves ALL modalities with full analysis</p>
+                        </div>
+                        
+                        <div class="success-box">
+                            <h3 style="color: #00ff88;">🧠 AUTO-PROGRESSION</h3>
+                            <p><strong>How it Works:</strong> Type exercise name → system shows your last workout</p>
+                            <p><strong>Suggestions:</strong> Click button to auto-fill suggested weight/reps</p>
+                            <p><strong>Strategies:</strong></p>
+                            <ul style="margin-left: 20px; margin-top: 5px;">
+                                <li>Volume: Same weight, +1 rep</li>
+                                <li>Intensity: +2.5-5 lbs, same reps</li>
+                                <li>Deload: -10% if last RPE was ≥9.5</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="warning-box">
+                            <h3>⚠️ INTERFERENCE DETECTION</h3>
+                            <p><strong>Before Save:</strong> System warns if you're combining problematic modalities</p>
+                            <p><strong>Critical Combos:</strong></p>
+                            <ul style="margin-left: 20px; margin-top: 5px;">
+                                <li>Legs + Track = Type II fiber overload</li>
+                                <li>4+ modalities = Extreme CNS stress</li>
+                            </ul>
+                            <p><strong>After Save:</strong> Full interference analysis with recovery recommendations</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3 style="color: #00ccff;">📊 WEEKLY ANALYSIS</h3>
+                            <p><strong>Load Metrics:</strong> Volume, CNS, TSS, A:C Ratio, Monotony, Strain</p>
+                            <p><strong>Fitness-Fatigue Model:</strong> Shows if you're building fitness or accumulating fatigue</p>
+                            <p><strong>Recovery Status:</strong> Excellent/Good/Moderate/Poor based on CNS trends</p>
+                            <p><strong>Next Week Forecast:</strong> AI predicts your readiness and gives recommendations</p>
+                            <p><strong>Injury Warnings:</strong> Alerts when A:C ratio >1.3 (injury risk zone)</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3 style="color: #8a2be2;">🔬 UNDERSTANDING METRICS</h3>
+                            <p><strong>CNS Score (0-100):</strong> Neural system stress. <60=low, 60-75=moderate, >75=high</p>
+                            <p><strong>TSS (Training Stress Score):</strong> Total training load combining duration, intensity, volume</p>
+                            <p><strong>A:C Ratio:</strong> This week vs 4-week average. 0.8-1.3 = optimal, >1.5 = injury risk</p>
+                            <p><strong>Monotony:</strong> Training variation. High monotony + high strain = overtraining</p>
+                            <p><strong>Fitness:</strong> Adaptations from training (builds slowly, decays slowly)</p>
+                            <p><strong>Fatigue:</strong> Accumulated stress (builds fast, dissipates fast with rest)</p>
+                            <p><strong>Performance:</strong> Fitness - Fatigue. Positive = ready for PRs. Negative = need recovery</p>
+                        </div>
+                        
+                        <div class="success-box">
+                            <h3 style="color: #00ff88;">💡 PRO TIPS</h3>
+                            <ul style="margin-left: 20px;">
+                                <li>Always upload HR data for cardio (Bike, Walking, Track)</li>
+                                <li>Track sleep every session - major CNS factor</li>
+                                <li>When A:C ratio >1.3, immediately reduce volume</li>
+                                <li>Performance <-15 = mandatory deload week</li>
+                                <li>Use auto-progression suggestions to stay consistent</li>
+                                <li>Right-click past days to compare progress</li>
+                                <li>Walking is crucial for active recovery - track it!</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="background: #0a0a0a; padding: 20px; border-radius: 8px; text-align: center; margin-top: 20px;">
+                            <p style="color: #666; font-size: 12px;">
+                                All data saved locally in your browser • No account needed • Export coming soon
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('weekly-modal').innerHTML = html;
+            document.getElementById('weekly-modal').classList.remove('hidden');
+        }
+        
         // ========== SAVE DAY ==========
         async function saveDay(dateStr) {
             const data = {
@@ -1420,6 +1830,17 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                 return;
             }
             
+            // PROACTIVE INTERFERENCE CHECK - BEFORE SAVING
+            const earlyInterference = detectInterferenceEarly(data.modalities);
+            if (earlyInterference.critical.length > 0) {
+                const proceed = confirm(
+                    '⚠️ CRITICAL INTERFERENCE DETECTED:\n\n' +
+                    earlyInterference.critical.map(i => `• ${i.message}\n  Impact: ${i.impact}\n  Fix: ${i.fix}`).join('\n\n') +
+                    '\n\nDo you want to save anyway?'
+                );
+                if (!proceed) return;
+            }
+            
             // Calculate combined metrics
             Object.keys(data.modalities).forEach(type => {
                 const mod = data.modalities[type];
@@ -1431,8 +1852,15 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
             // Quality analysis
             data.qualities = analyzeQualities(data.modalities);
             
-            // Interference detection
+            // Interference detection (full)
             data.interference = detectInterference(data.modalities, data.qualities);
+            
+            // Store exercise history for progression
+            Object.keys(data.modalities).forEach(type => {
+                if ((type === 'chest' || type === 'back' || type === 'legs') && data.modalities[type].exercises) {
+                    updateExerciseHistory(dateStr, data.modalities[type].exercises);
+                }
+            });
             
             trainingData[dateStr] = data;
             historicalTSS.push({ date: dateStr, tss: data.tss });
@@ -1442,6 +1870,49 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
             
             // Show results
             displayDayAnalysis(dateStr, data);
+        }
+        
+        // Early interference detection (before save)
+        function detectInterferenceEarly(modalities) {
+            const critical = [];
+            const warnings = [];
+            const types = Object.keys(modalities);
+            
+            // Critical combinations
+            if (types.includes('legs') && types.includes('track')) {
+                critical.push({
+                    message: 'Legs + Track same day = Type II fiber overload',
+                    impact: 'Power output compromised 15-20%, injury risk elevated',
+                    fix: 'Separate by 48hr minimum OR do track BEFORE legs'
+                });
+            }
+            
+            if (types.length >= 4 && !types.includes('walking')) {
+                critical.push({
+                    message: `${types.length} HIGH-INTENSITY modalities in one day`,
+                    impact: 'Extreme CNS overload, recovery compromised',
+                    fix: 'Split across 2 days or reduce volume by 30%'
+                });
+            }
+            
+            // Warnings
+            if (types.includes('bjj') && types.includes('back')) {
+                warnings.push({
+                    message: 'BJJ + Back = Grip fatigue compounding',
+                    impact: 'Pulling strength reduced 10-15%',
+                    fix: 'Use straps or separate modalities'
+                });
+            }
+            
+            if (types.includes('chest') && types.includes('bjj')) {
+                warnings.push({
+                    message: 'Chest + BJJ = Pushing fatigue overlap',
+                    impact: 'Both use pecs/triceps heavily',
+                    fix: 'Do chest AFTER BJJ if possible'
+                });
+            }
+            
+            return { critical, warnings };
         }
         
         async function collectModalityData(type) {
@@ -1910,6 +2381,7 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
             let days = 0;
             const dailyCNS = [];
             const dailyTSS = [];
+            const workoutDates = [];
             
             for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
                 const dateStr = formatDate(d);
@@ -1922,6 +2394,7 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                     totalTSS += dayData.tss || 0;
                     dailyCNS.push(dayData.totalCNS || 0);
                     dailyTSS.push(dayData.tss || 0);
+                    workoutDates.push(dateStr);
                 }
             }
             
@@ -1944,10 +2417,19 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
             if (last28Days.length >= 14) {
                 const chronicTSS = last28Days.reduce((a, b) => a + b.tss, 0) / last28Days.length;
                 if (chronicTSS > 0) {
-                    acRatio = (avgTSS * 7 / chronicTSS).toFixed(2);
+                    acRatio = (totalTSS / (chronicTSS * 7)).toFixed(2);
                     if (parseFloat(acRatio) > 1.3) acWarning = true;
                 }
             }
+            
+            // Fitness-Fatigue Model
+            const fitnessFatigue = calculateFitnessFatigue(historicalTSS);
+            
+            // Recovery Status
+            const recoveryStatus = assessRecoveryStatus(dailyCNS, days);
+            
+            // Performance Prediction
+            const performancePrediction = predictPerformance(fitnessFatigue, acRatio, recoveryStatus);
             
             const html = `
                 <div class="modal">
@@ -1957,9 +2439,9 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                             <button class="close-btn" onclick="closeModal()">✕ Close</button>
                         </div>
                         
-                        <p style="color: #888; margin-bottom: 30px;">${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}</p>
+                        <p style="color: #888; margin-bottom: 30px;">${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()} (${days} training days)</p>
                         
-                        <h3 style="color: #00ff88; margin-bottom: 15px;">ELITE METRICS:</h3>
+                        <h3 style="color: #00ff88; margin-bottom: 15px;">LOAD METRICS:</h3>
                         
                         <div class="metrics-grid">
                             <div class="metric-card" style="border-left-color: #00ff88;">
@@ -1988,33 +2470,59 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
                             </div>
                         </div>
                         
+                        <h3 style="color: #00ff88; margin: 30px 0 15px 0;">FITNESS-FATIGUE MODEL:</h3>
+                        
+                        <div class="metrics-grid">
+                            <div class="metric-card" style="border-left-color: #00ff88;">
+                                <div class="metric-value">${fitnessFatigue.fitness}</div>
+                                <div class="metric-label">Fitness ${fitnessFatigue.fitnessChange > 0 ? '↑' : '↓'}</div>
+                            </div>
+                            <div class="metric-card" style="border-left-color: #ff6b35;">
+                                <div class="metric-value">${fitnessFatigue.fatigue}</div>
+                                <div class="metric-label">Fatigue ${fitnessFatigue.fatigueChange > 0 ? '↑' : '↓'}</div>
+                            </div>
+                            <div class="metric-card" style="border-left-color: #00ccff;">
+                                <div class="metric-value" style="color: ${fitnessFatigue.performance > 0 ? '#00ff88' : '#ff4444'};">${fitnessFatigue.performance > 0 ? '+' : ''}${fitnessFatigue.performance}</div>
+                                <div class="metric-label">Performance</div>
+                            </div>
+                            <div class="metric-card" style="border-left-color: ${recoveryStatus.color};">
+                                <div class="metric-value" style="color: ${recoveryStatus.color}; font-size: 20px;">${recoveryStatus.status}</div>
+                                <div class="metric-label">Recovery Status</div>
+                            </div>
+                        </div>
+                        
+                        ${performancePrediction.html}
+                        
                         ${acWarning ? `
                             <div class="warning-box">
                                 <h3>⚠️ INJURY RISK WARNING</h3>
                                 <p><strong>Acute:Chronic ratio: ${acRatio}</strong> (optimal: 0.8-1.3)</p>
                                 <p>This week's training load is ${((parseFloat(acRatio) - 1) * 100).toFixed(0)}% above your recent average</p>
-                                <p><strong>RECOMMENDATION:</strong></p>
+                                <p><strong>IMMEDIATE ACTIONS:</strong></p>
                                 <ul style="margin-left: 20px; margin-top: 10px;">
-                                    <li>Reduce volume by 15-20% next week</li>
-                                    <li>Add 1-2 extra rest days</li>
-                                    <li>Focus on recovery (sleep 8+ hours, nutrition, mobility)</li>
-                                    <li>Monitor for overtraining symptoms (elevated resting HR, mood changes, persistent fatigue)</li>
+                                    <li>Reduce volume by 20-25% next week</li>
+                                    <li>Add 1-2 extra rest/walking days</li>
+                                    <li>Focus on sleep (8+ hours), nutrition, mobility</li>
+                                    <li>Monitor: elevated resting HR, mood changes, persistent fatigue</li>
+                                    <li>Consider deload week if symptoms present</li>
                                 </ul>
                             </div>
                         ` : `
                             <div class="success-box">
                                 <h3>✓ TRAINING LOAD OPTIMAL</h3>
-                                <p>Your acute:chronic ratio (${acRatio}) is within safe ranges</p>
-                                <p>Continue current training approach while monitoring recovery</p>
+                                <p>Your acute:chronic ratio (${acRatio}) is within safe ranges (0.8-1.3)</p>
+                                <p>Continue current training approach while monitoring recovery markers</p>
                             </div>
                         `}
                         
                         <div class="info-box">
-                            <h3 style="color: #00ccff;">INTERPRETATION:</h3>
-                            <p><strong>TSS:</strong> Training Stress Score measures total training load</p>
-                            <p><strong>A:C Ratio:</strong> This week vs 4-week average. Optimal: 0.8-1.3. Above 1.5 = high injury risk</p>
-                            <p><strong>Monotony:</strong> Lower = better variation. High monotony + high strain = overtraining risk</p>
-                            <p><strong>Strain:</strong> Weekly load × monotony. Monitor trends, avoid sudden spikes</p>
+                            <h3 style="color: #00ccff;">METRIC INTERPRETATION:</h3>
+                            <p><strong>TSS:</strong> Training Stress Score - cumulative training load</p>
+                            <p><strong>A:C Ratio:</strong> This week vs 4-week average. 0.8-1.3 = optimal. >1.5 = high injury risk</p>
+                            <p><strong>Monotony:</strong> Training variation. Lower = better. High monotony + high strain = overtraining</p>
+                            <p><strong>Fitness:</strong> Adaptations from training (builds slowly over weeks)</p>
+                            <p><strong>Fatigue:</strong> Accumulated stress (dissipates quickly with rest)</p>
+                            <p><strong>Performance:</strong> Fitness minus fatigue. Positive = peak ready. Negative = need recovery</p>
                         </div>
                     </div>
                 </div>
@@ -2022,6 +2530,120 @@ DO NOT include any text outside the JSON object. Do not use markdown code blocks
             
             document.getElementById('weekly-modal').innerHTML = html;
             document.getElementById('weekly-modal').classList.remove('hidden');
+        }
+        
+        // Calculate Fitness-Fatigue Model (Banister Model)
+        function calculateFitnessFatigue(tssHistory) {
+            if (tssHistory.length < 7) {
+                return { fitness: 0, fatigue: 0, performance: 0, fitnessChange: 0, fatigueChange: 0 };
+            }
+            
+            // Fitness decay constant (42 days)
+            // Fatigue decay constant (7 days)
+            const fitnessDecay = 42;
+            const fatigueDecay = 7;
+            
+            let fitness = 0;
+            let fatigue = 0;
+            
+            // Calculate using exponential weighted average
+            tssHistory.forEach((entry, i) => {
+                const daysAgo = tssHistory.length - i - 1;
+                fitness += entry.tss * Math.exp(-daysAgo / fitnessDecay);
+                fatigue += entry.tss * Math.exp(-daysAgo / fatigueDecay);
+            });
+            
+            // Previous week for comparison
+            const prevWeekStart = Math.max(0, tssHistory.length - 14);
+            const prevWeekEnd = Math.max(0, tssHistory.length - 7);
+            const prevWeekData = tssHistory.slice(prevWeekStart, prevWeekEnd);
+            
+            let prevFitness = 0;
+            let prevFatigue = 0;
+            prevWeekData.forEach((entry, i) => {
+                const daysAgo = prevWeekData.length - i - 1;
+                prevFitness += entry.tss * Math.exp(-daysAgo / fitnessDecay);
+                prevFatigue += entry.tss * Math.exp(-daysAgo / fatigueDecay);
+            });
+            
+            const performance = Math.round(fitness - fatigue);
+            const fitnessChange = Math.round(fitness - prevFitness);
+            const fatigueChange = Math.round(fatigue - prevFatigue);
+            
+            return {
+                fitness: Math.round(fitness),
+                fatigue: Math.round(fatigue),
+                performance,
+                fitnessChange,
+                fatigueChange
+            };
+        }
+        
+        // Assess recovery status
+        function assessRecoveryStatus(dailyCNS, days) {
+            if (days === 0) return { status: 'UNKNOWN', color: '#888' };
+            
+            const avgCNS = dailyCNS.reduce((a, b) => a + b, 0) / days;
+            const recentCNS = dailyCNS.slice(-2); // Last 2 workouts
+            const recentAvg = recentCNS.reduce((a, b) => a + b, 0) / recentCNS.length;
+            
+            // Check for upward trend (getting worse)
+            const trend = recentAvg - avgCNS;
+            
+            if (avgCNS > 80 || trend > 15) {
+                return { status: 'POOR', color: '#ff4444' };
+            } else if (avgCNS > 70 || trend > 10) {
+                return { status: 'MODERATE', color: '#ffaa00' };
+            } else if (avgCNS > 60) {
+                return { status: 'GOOD', color: '#00ccff' };
+            } else {
+                return { status: 'EXCELLENT', color: '#00ff88' };
+            }
+        }
+        
+        // Predict next week performance
+        function predictPerformance(fitnessFatigue, acRatio, recoveryStatus) {
+            let recommendations = [];
+            let nextWeekForecast = '';
+            
+            const perf = fitnessFatigue.performance;
+            const acNum = parseFloat(acRatio);
+            
+            if (perf > 20 && recoveryStatus.status === 'EXCELLENT' && acNum < 1.2) {
+                nextWeekForecast = 'PEAK PERFORMANCE';
+                recommendations.push('Perfect time for PRs and max effort tests');
+                recommendations.push('Consider testing 1RMs or competition');
+                recommendations.push('Maintain current load, avoid increasing volume');
+            } else if (perf > 0 && recoveryStatus.status !== 'POOR') {
+                nextWeekForecast = 'GOOD STATE';
+                recommendations.push('Continue progressive overload');
+                recommendations.push('Can increase intensity slightly (2-5%)');
+                recommendations.push('Monitor recovery markers closely');
+            } else if (perf < 0 && perf > -15) {
+                nextWeekForecast = 'FATIGUE BUILDING';
+                recommendations.push('Reduce volume by 15-20%');
+                recommendations.push('Add extra rest day or walking');
+                recommendations.push('Focus on technique, reduce intensity');
+            } else if (perf <= -15) {
+                nextWeekForecast = 'DELOAD NEEDED';
+                recommendations.push('MANDATORY deload week (50% volume reduction)');
+                recommendations.push('No CNS > 65 sessions');
+                recommendations.push('Focus on recovery: sleep, nutrition, mobility');
+                recommendations.push('Walking and light BJJ only');
+            }
+            
+            const html = `
+                <div class="${perf > 0 ? 'success-box' : 'warning-box'}">
+                    <h3 style="color: ${perf > 0 ? '#00ff88' : '#ff6b35'};">📈 NEXT WEEK FORECAST: ${nextWeekForecast}</h3>
+                    <p style="margin-bottom: 10px;"><strong>Performance Index:</strong> ${fitnessFatigue.performance} (${perf > 0 ? 'Ready for hard training' : 'Need recovery'})</p>
+                    <p style="font-weight: bold; margin-bottom: 10px;">RECOMMENDATIONS:</p>
+                    <ul style="margin-left: 20px;">
+                        ${recommendations.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            return { html, forecast: nextWeekForecast, recommendations };
         }
         
         // ========== INIT ==========
