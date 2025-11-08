@@ -112,6 +112,120 @@
             background: #ff6666;
         }
         
+        .rpe-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1001;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .rpe-content {
+            max-width: 600px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 30px;
+            border: 2px solid #00ff88;
+        }
+        
+        .rpe-row {
+            display: grid;
+            grid-template-columns: 80px 120px 1fr;
+            gap: 15px;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #0a0a0a;
+            border-radius: 6px;
+            align-items: center;
+        }
+        
+        .rpe-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .rpe-rir {
+            font-size: 14px;
+            color: #00ccff;
+            font-weight: bold;
+        }
+        
+        .rpe-desc {
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .muscle-select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #444;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .muscle-select:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+        
+        .load-indicator {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid #00ff88;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #00ff88;
+            font-weight: bold;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .quality-strength { color: #ff6b35; }
+        .quality-hypertrophy { color: #00ccff; }
+        .quality-power { color: #ff00ff; }
+        .quality-speed { color: #ffff00; }
+        .quality-endurance { color: #00ff88; }
+        
+        .interference-critical {
+            background: rgba(255, 68, 68, 0.3);
+            border-left: 4px solid #ff4444;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .interference-moderate {
+            background: rgba(255, 170, 0, 0.2);
+            border-left: 4px solid #ffaa00;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .synergy-item {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 4px solid #00ff88;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
         .week-nav {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -522,6 +636,11 @@
         <!-- WEIGHT TRAINING DAYS -->
         <div id="form-chest" class="section hidden">
             <h2>💪 CHEST DAY</h2>
+            
+            <button onclick="showRPEGuide()" style="background: #444; border: 2px solid #666; color: #aaa; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 20px;">
+                ❓ RPE REFERENCE GUIDE
+            </button>
+            
             <div id="chest-exercises"></div>
             <button class="add-exercise-btn" onclick="addExercise('chest')">+ ADD EXERCISE</button>
             
@@ -551,6 +670,11 @@
         
         <div id="form-back" class="section hidden">
             <h2>💪 BACK DAY</h2>
+            
+            <button onclick="showRPEGuide()" style="background: #444; border: 2px solid #666; color: #aaa; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 20px;">
+                ❓ RPE REFERENCE GUIDE
+            </button>
+            
             <div id="back-exercises"></div>
             <button class="add-exercise-btn" onclick="addExercise('back')">+ ADD EXERCISE</button>
             
@@ -580,6 +704,11 @@
         
         <div id="form-legs" class="section hidden">
             <h2>💪 LEG DAY</h2>
+            
+            <button onclick="showRPEGuide()" style="background: #444; border: 2px solid #666; color: #aaa; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 20px;">
+                ❓ RPE REFERENCE GUIDE
+            </button>
+            
             <div id="legs-exercises"></div>
             <button class="add-exercise-btn" onclick="addExercise('legs')">+ ADD EXERCISE</button>
             
@@ -776,6 +905,9 @@
         
         <!-- History Modal -->
         <div id="history-modal" class="hidden"></div>
+        
+        <!-- RPE Guide Modal -->
+        <div id="rpe-modal" class="hidden"></div>
     </div>
     
     <script>
@@ -827,7 +959,9 @@
                 if (entry.day === 'chest' || entry.day === 'back' || entry.day === 'legs') {
                     if (entry.data.exercises) {
                         entry.data.exercises.forEach(ex => {
-                            html += `<strong>${ex.name}:</strong> `;
+                            html += `<strong>${ex.name}</strong>`;
+                            if (ex.muscleGroup) html += ` (${ex.muscleGroup})`;
+                            html += `: `;
                             if (ex.workingSets && ex.workingSets.length > 0) {
                                 ex.workingSets.forEach((set, idx) => {
                                     html += `${set.weight}×${set.reps}`;
@@ -868,6 +1002,83 @@
         
         function closeHistory() {
             document.getElementById('history-modal').classList.add('hidden');
+        }
+        
+        // ========== RPE REFERENCE GUIDE ==========
+        function showRPEGuide() {
+            const html = `
+                <div class="rpe-modal">
+                    <div class="rpe-content">
+                        <button class="close-history-btn" onclick="closeRPEGuide()">✕ Close</button>
+                        <h2 style="color: #00ff88; margin-bottom: 20px; clear: both;">RPE REFERENCE GUIDE</h2>
+                        <p style="color: #aaa; margin-bottom: 20px;">RPE (Rate of Perceived Exertion) = How many reps you have LEFT in the tank</p>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">10</div>
+                            <div class="rpe-rir">0 RIR</div>
+                            <div class="rpe-desc">Absolute failure - could NOT do another rep</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">9.5</div>
+                            <div class="rpe-rir">0-1 RIR</div>
+                            <div class="rpe-desc">Maybe 1 more rep - almost certain failure</div>
+                        </div>
+                        
+                        <div class="rpe-row" style="border: 2px solid #ff6b35;">
+                            <div class="rpe-number">9</div>
+                            <div class="rpe-rir">1 RIR</div>
+                            <div class="rpe-desc"><strong>ALMOST FAILURE</strong> - Definitely 1 rep left, not 2</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">8.5</div>
+                            <div class="rpe-rir">1-2 RIR</div>
+                            <div class="rpe-desc">1 rep for sure, maybe 2</div>
+                        </div>
+                        
+                        <div class="rpe-row" style="border: 2px solid #00ff88;">
+                            <div class="rpe-number">8</div>
+                            <div class="rpe-rir">2 RIR</div>
+                            <div class="rpe-desc"><strong>OPTIMAL FOR HYPERTROPHY</strong> - Solid 2 reps left</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">7.5</div>
+                            <div class="rpe-rir">2-3 RIR</div>
+                            <div class="rpe-desc">2 reps for sure, maybe 3</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">7</div>
+                            <div class="rpe-rir">3 RIR</div>
+                            <div class="rpe-desc">Moderate difficulty - 3 reps left</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">6</div>
+                            <div class="rpe-rir">4 RIR</div>
+                            <div class="rpe-desc">Bar speed still fast - 4 reps left</div>
+                        </div>
+                        
+                        <div class="rpe-row">
+                            <div class="rpe-number">5</div>
+                            <div class="rpe-rir">5+ RIR</div>
+                            <div class="rpe-desc">Warm-up territory - many reps left</div>
+                        </div>
+                        
+                        <p style="color: #666; margin-top: 20px; font-size: 13px; text-align: center;">
+                            RIR = Reps In Reserve (how many more reps you could do)
+                        </p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('rpe-modal').innerHTML = html;
+            document.getElementById('rpe-modal').classList.remove('hidden');
+        }
+        
+        function closeRPEGuide() {
+            document.getElementById('rpe-modal').classList.add('hidden');
         }
         
         // ========== HYBRID PROGRESSION LOGIC ==========
@@ -994,19 +1205,297 @@
             document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn-' + day).classList.add('active');
             
-            if ((day === 'chest' || day === 'back' || day === 'legs') && exerciseCounters[day] === 0) {
-                addExercise(day);
-            }
+            // AUTO-LOAD LAST SESSION WITH PROGRESSION
+            const lastSession = getLastSession(day);
             
-            if (day === 'track' && sprintCounter === 0) {
+            if (lastSession) {
+                // Show loading indicator
+                const formDiv = document.getElementById('form-' + day);
+                const existingIndicator = formDiv.querySelector('.load-indicator');
+                if (!existingIndicator) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'load-indicator';
+                    indicator.style.cssText = 'background: rgba(0,255,136,0.1); border: 2px solid #00ff88; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; color: #00ff88;';
+                    indicator.innerHTML = '✓ Loaded last session + progression recommendations (override any values you want)';
+                    formDiv.insertBefore(indicator, formDiv.querySelector('h2').nextSibling);
+                }
+                
+                loadSessionWithProgression(day, lastSession);
+            } else {
+                // No history - create default
+                if ((day === 'chest' || day === 'back' || day === 'legs') && exerciseCounters[day] === 0) {
+                    addExercise(day);
+                }
+                
+                if (day === 'track' && sprintCounter === 0) {
+                    for (let i = 0; i < 3; i++) addSprint();
+                }
+            }
+        }
+        
+        // LOAD SESSION WITH PROGRESSION
+        function loadSessionWithProgression(day, lastSession) {
+            if (day === 'chest' || day === 'back' || day === 'legs') {
+                loadWeightDayProgression(day, lastSession);
+            } else if (day === 'track') {
+                loadTrackDayProgression(lastSession);
+            } else if (day === 'bike') {
+                loadBikeDayProgression(lastSession);
+            } else if (day === 'bjj') {
+                loadBJJDayProgression(lastSession);
+            }
+        }
+        
+        // WEIGHT DAY AUTO-LOAD
+        function loadWeightDayProgression(day, lastSession) {
+            if (!lastSession.data.exercises || lastSession.data.exercises.length === 0) return;
+            
+            // Clear existing exercises
+            document.getElementById(day + '-exercises').innerHTML = '';
+            exerciseCounters[day] = 0;
+            
+            // Add each exercise with progression
+            lastSession.data.exercises.forEach(lastEx => {
+                exerciseCounters[day]++;
+                const exId = `${day}-ex${exerciseCounters[day]}`;
+                setCounters[exId] = { warmup: 0, working: 0 };
+                
+                // Create exercise block
+                const html = `
+                    <div class="exercise-block" id="${exId}">
+                        <input type="text" class="exercise-name" value="${lastEx.name}" data-exid="${exId}">
+                        
+                        <select class="muscle-select" data-exid="${exId}">
+                            <option value="">Select muscle group...</option>
+                            <option value="chest" ${lastEx.muscleGroup === 'chest' ? 'selected' : ''}>Chest (pecs, front delts)</option>
+                            <option value="back" ${lastEx.muscleGroup === 'back' ? 'selected' : ''}>Back (lats, traps, rear delts)</option>
+                            <option value="shoulders" ${lastEx.muscleGroup === 'shoulders' ? 'selected' : ''}>Shoulders (delts)</option>
+                            <option value="biceps" ${lastEx.muscleGroup === 'biceps' ? 'selected' : ''}>Biceps</option>
+                            <option value="triceps" ${lastEx.muscleGroup === 'triceps' ? 'selected' : ''}>Triceps</option>
+                            <option value="quads" ${lastEx.muscleGroup === 'quads' ? 'selected' : ''}>Quads (front thighs)</option>
+                            <option value="hamstrings" ${lastEx.muscleGroup === 'hamstrings' ? 'selected' : ''}>Hamstrings (back thighs)</option>
+                            <option value="glutes" ${lastEx.muscleGroup === 'glutes' ? 'selected' : ''}>Glutes</option>
+                            <option value="calves" ${lastEx.muscleGroup === 'calves' ? 'selected' : ''}>Calves</option>
+                            <option value="core" ${lastEx.muscleGroup === 'core' ? 'selected' : ''}>Core (abs, obliques)</option>
+                        </select>
+                        
+                        <div class="set-label">WARM-UP SETS (auto-calculated)</div>
+                        <div id="${exId}-warmup"></div>
+                        <button class="add-set-btn" onclick="addSet('${exId}', 'warmup')">+ Add Warm-up</button>
+                        <div class="set-label" style="margin-top: 15px;">WORKING SETS</div>
+                        <div id="${exId}-working"></div>
+                        <button class="add-set-btn" onclick="addSet('${exId}', 'working')">+ Add Working Set</button>
+                    </div>
+                `;
+                
+                document.getElementById(day + '-exercises').insertAdjacentHTML('beforeend', html);
+                
+                // Calculate progression
+                const lastTopSet = lastEx.workingSets[0];
+                const lastRPE = lastTopSet.rpe || 8;
+                const lastReps = lastTopSet.reps;
+                const lastWeight = lastTopSet.weight;
+                
+                let newWeight = lastWeight;
+                let newReps = lastReps;
+                
+                // Apply hybrid progression logic
+                if (lastReps <= 5) {
+                    // Strength - add weight
+                    newWeight = lastRPE <= 7.5 ? lastWeight + 5 : lastWeight + 2.5;
+                } else if (lastReps >= 9) {
+                    // Hypertrophy - add reps or weight
+                    if (lastReps < 12 && lastRPE < 9) {
+                        newReps = lastReps + 1;
+                    } else {
+                        newWeight = lastWeight + 5;
+                        newReps = lastReps - 2;
+                    }
+                } else {
+                    // Hybrid 6-8 reps
+                    if (lastRPE >= 9) {
+                        // Maintain
+                    } else if (lastReps < 8) {
+                        newReps = lastReps + 1;
+                    } else {
+                        newWeight = lastWeight + 5;
+                        newReps = 6;
+                    }
+                }
+                
+                // Add warm-up sets (auto-calculated)
+                const warmup1Weight = Math.round(newWeight * 0.5);
+                const warmup2Weight = Math.round(newWeight * 0.7);
+                const warmup3Weight = Math.round(newWeight * 0.85);
+                
+                addSetWithValues(exId, 'warmup', warmup1Weight, 8, 0);
+                addSetWithValues(exId, 'warmup', warmup2Weight, 5, 0);
+                addSetWithValues(exId, 'warmup', warmup3Weight, 3, 0);
+                
+                // Add working sets with progression
+                lastEx.workingSets.forEach((set, idx) => {
+                    const weight = idx === 0 ? newWeight : set.weight;
+                    const reps = idx === 0 ? newReps : set.reps;
+                    const rpe = set.rpe || 8;
+                    addSetWithValues(exId, 'working', weight, reps, rpe);
+                });
+            });
+            
+            // Fill sleep (same as last time)
+            document.getElementById(day + '-sleep').value = lastSession.data.sleep || 7.5;
+        }
+        
+        // Helper function to add set with values
+        function addSetWithValues(exId, type, weight, reps, rpe) {
+            setCounters[exId][type]++;
+            const setId = `${exId}-${type}${setCounters[exId][type]}`;
+            const html = `
+                <div class="set-row" id="${setId}">
+                    <input type="number" placeholder="Weight" class="${type}-weight" value="${weight}">
+                    <input type="number" placeholder="Reps" class="${type}-reps" value="${reps}">
+                    <input type="number" placeholder="RPE" class="${type}-rpe" value="${rpe > 0 ? rpe : ''}" ${type === 'warmup' ? 'style="display:none"' : ''}>
+                    <button class="delete-btn" onclick="deleteSet('${setId}')">✕</button>
+                </div>
+            `;
+            document.getElementById(`${exId}-${type}`).insertAdjacentHTML('beforeend', html);
+        }
+        
+        // TRACK DAY AUTO-LOAD
+        function loadTrackDayProgression(lastSession) {
+            const data = lastSession.data;
+            
+            // Load sprints
+            if (data.sprints && data.sprints.length > 0) {
+                document.getElementById('track-sprints').innerHTML = '';
+                sprintCounter = 0;
+                data.sprints.forEach(sprint => {
+                    addSprintWithValues(sprint.distance, sprint.intensity, 0, 0);
+                });
+            } else if (sprintCounter === 0) {
                 for (let i = 0; i < 3; i++) addSprint();
             }
+            
+            // Load drills with progression
+            const drills = data.drills || [0,0,0,0,0,0,0];
+            const shouldProgress = data.ground === 'bouncy' && data.energy === 'high' && data.achilles === 'fresh';
+            
+            drills.forEach((reps, idx) => {
+                const inputId = `track-drill${idx + 1}`;
+                let newReps = reps;
+                
+                // Add 1 rep if conditions good
+                if (shouldProgress && reps > 0) {
+                    newReps = reps + 1;
+                }
+                
+                document.getElementById(inputId).value = newReps;
+            });
+            
+            // Fill sleep
+            document.getElementById('track-sleep').value = data.sleep || 7.5;
+        }
+        
+        function addSprintWithValues(distance, intensity, time, hr) {
+            sprintCounter++;
+            const html = `
+                <div class="set-row" id="sprint${sprintCounter}" style="grid-template-columns: 1fr 1fr 1fr 1fr 40px; margin-bottom: 10px;">
+                    <input type="text" placeholder="Distance (e.g., 40yd, 100m)" class="sprint-distance" value="${distance || ''}">
+                    <select class="sprint-intensity">
+                        <option value="">Intensity...</option>
+                        <option value="100" ${intensity == 100 ? 'selected' : ''}>100% - All-out</option>
+                        <option value="95" ${intensity == 95 ? 'selected' : ''}>95%</option>
+                        <option value="90" ${intensity == 90 ? 'selected' : ''}>90%</option>
+                        <option value="85" ${intensity == 85 ? 'selected' : ''}>85%</option>
+                        <option value="80" ${intensity == 80 ? 'selected' : ''}>80%</option>
+                    </select>
+                    <input type="number" step="0.01" placeholder="Time (sec)" class="sprint-time" value="${time || ''}">
+                    <input type="number" placeholder="Peak HR" class="sprint-hr" value="${hr || ''}">
+                    <button class="delete-btn" onclick="deleteSet('sprint${sprintCounter}')">✕</button>
+                </div>
+            `;
+            document.getElementById('track-sprints').insertAdjacentHTML('beforeend', html);
+        }
+        
+        // BIKE DAY AUTO-LOAD
+        function loadBikeDayProgression(lastSession) {
+            const data = lastSession.data;
+            
+            if (data.protocol) {
+                bikeProtocol = data.protocol;
+                selectBikeProtocol(data.protocol);
+                
+                if (data.protocol === 'peak-rpm' && data.sets) {
+                    document.getElementById('bike-peak-rpm-sets').innerHTML = '';
+                    peakRPMCounter = 0;
+                    data.sets.forEach(set => {
+                        addPeakRPMSetWithValues(set.rpm, set.hr);
+                    });
+                } else if (data.protocol === 'zone5' && data.reps) {
+                    document.getElementById('bike-zone5-reps').innerHTML = '';
+                    zone5RepCounter = 0;
+                    data.reps.forEach(rep => {
+                        addZone5RepWithValues(rep.rpm, rep.work, rep.recovery);
+                    });
+                    document.getElementById('bike-z5-duration').value = data.duration || 20;
+                }
+            }
+            
+            document.getElementById('bike-sleep').value = data.sleep || 7.5;
+        }
+        
+        function addPeakRPMSetWithValues(rpm, hr) {
+            peakRPMCounter++;
+            const html = `
+                <div class="set-row" id="peak-rpm-set${peakRPMCounter}" style="grid-template-columns: 1fr 1fr 40px; margin-bottom: 10px;">
+                    <input type="number" placeholder="RPM achieved" class="peak-rpm-value" value="${rpm || ''}">
+                    <input type="number" placeholder="Peak HR (optional)" class="peak-rpm-hr" value="${hr || ''}">
+                    <button class="delete-btn" onclick="deleteSet('peak-rpm-set${peakRPMCounter}')">✕</button>
+                </div>
+            `;
+            document.getElementById('bike-peak-rpm-sets').insertAdjacentHTML('beforeend', html);
+        }
+        
+        function addZone5RepWithValues(rpm, work, recovery) {
+            zone5RepCounter++;
+            const html = `
+                <div class="set-row" id="z5-rep${zone5RepCounter}" style="grid-template-columns: 1fr 1fr 1fr 40px; margin-bottom: 10px;">
+                    <input type="number" placeholder="Peak RPM" class="z5-rpm" value="${rpm || ''}">
+                    <input type="number" placeholder="Work time (sec)" class="z5-work" value="${work || ''}">
+                    <input type="number" placeholder="Recovery to Z2 (sec)" class="z5-recovery" value="${recovery || ''}">
+                    <button class="delete-btn" onclick="deleteSet('z5-rep${zone5RepCounter}')">✕</button>
+                </div>
+            `;
+            document.getElementById('bike-zone5-reps').insertAdjacentHTML('beforeend', html);
+        }
+        
+        // BJJ DAY AUTO-LOAD
+        function loadBJJDayProgression(lastSession) {
+            const data = lastSession.data;
+            
+            // Progress or maintain based on last session
+            const shouldProgress = data.feeling === 'great' && parseFloat(data.weightLoss) < 3;
+            let newTime = parseFloat(data.sparTime) || 45;
+            
+            if (shouldProgress) {
+                newTime += 5; // Add 5 minutes
+            }
+            
+            document.getElementById('bjj-time').value = newTime;
+            document.getElementById('bjj-intensity').value = data.intensity || '';
+            document.getElementById('bjj-sleep').value = data.sleep || 7.5;
         }
         
         function selectBikeProtocol(protocol) {
             bikeProtocol = protocol;
             document.querySelectorAll('#form-bike .protocol-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+            
+            // Find and activate the button
+            const buttons = document.querySelectorAll('#form-bike .protocol-btn');
+            buttons.forEach(btn => {
+                if (btn.textContent.toLowerCase().includes(protocol.replace('-', ' ').replace('rpm', 'RPM'))) {
+                    btn.classList.add('active');
+                }
+            });
             
             // Hide all protocol forms
             document.getElementById('bike-peak-rpm').classList.add('hidden');
@@ -1017,7 +1506,7 @@
             // Show selected protocol
             document.getElementById('bike-' + protocol).classList.remove('hidden');
             
-            // Initialize if needed
+            // Initialize if needed (only if counters are 0)
             if (protocol === 'peak-rpm' && peakRPMCounter === 0) {
                 for (let i = 0; i < 3; i++) addPeakRPMSet();
             }
@@ -1036,7 +1525,22 @@
             
             const html = `
                 <div class="exercise-block" id="${exId}">
-                    <input type="text" class="exercise-name" placeholder="Exercise name (e.g., Bench Press, Squat)">
+                    <input type="text" class="exercise-name" placeholder="Exercise name (e.g., Bench Press, Squat)" data-exid="${exId}">
+                    
+                    <select class="muscle-select" data-exid="${exId}">
+                        <option value="">Select muscle group...</option>
+                        <option value="chest">Chest (pecs, front delts)</option>
+                        <option value="back">Back (lats, traps, rear delts)</option>
+                        <option value="shoulders">Shoulders (delts)</option>
+                        <option value="biceps">Biceps</option>
+                        <option value="triceps">Triceps</option>
+                        <option value="quads">Quads (front thighs)</option>
+                        <option value="hamstrings">Hamstrings (back thighs)</option>
+                        <option value="glutes">Glutes</option>
+                        <option value="calves">Calves</option>
+                        <option value="core">Core (abs, obliques)</option>
+                    </select>
+                    
                     <div class="set-label">WARM-UP SETS</div>
                     <div id="${exId}-warmup"></div>
                     <button class="add-set-btn" onclick="addSet('${exId}', 'warmup')">+ Add Warm-up</button>
@@ -1152,7 +1656,8 @@
                 
                 exerciseBlocks.forEach(block => {
                     const name = block.querySelector('.exercise-name').value;
-                    if (!name) return;
+                    const muscleGroup = block.querySelector('.muscle-select').value;
+                    if (!name || !muscleGroup) return;
                     
                     const warmupSets = [];
                     const warmupWeights = block.querySelectorAll('.warmup-weight');
@@ -1176,12 +1681,12 @@
                     });
                     
                     if (warmupSets.length > 0 || workingSets.length > 0) {
-                        exercises.push({ name, warmupSets, workingSets });
+                        exercises.push({ name, muscleGroup, warmupSets, workingSets });
                     }
                 });
                 
                 if (exercises.length === 0) {
-                    alert('Add at least one exercise with sets!');
+                    alert('Add at least one exercise with muscle group and sets!');
                     return;
                 }
                 
@@ -1290,6 +1795,240 @@
             alert(day.toUpperCase() + ' saved to history! ✓');
         }
         
+        // ========== CONCURRENT TRAINING EXPERT SYSTEM ==========
+        
+        // QUALITY DETECTION - Determines what training quality each session emphasized
+        function detectTrainingQuality(data, dayType) {
+            const qualities = {
+                strength: 0,
+                hypertrophy: 0,
+                power: 0,
+                speed: 0,
+                endurance: 0
+            };
+            
+            if (dayType === 'chest' || dayType === 'back' || dayType === 'legs') {
+                let totalVolume = 0;
+                data.exercises.forEach(ex => {
+                    ex.workingSets.forEach(set => {
+                        const volume = set.reps * (set.rpe || 8);
+                        totalVolume += volume;
+                        
+                        if (set.reps <= 5) {
+                            // Pure strength
+                            qualities.strength += volume * 1.5;
+                        } else if (set.reps <= 8) {
+                            // Hybrid - both qualities
+                            qualities.strength += volume * 0.7;
+                            qualities.hypertrophy += volume * 0.5;
+                        } else {
+                            // Pure hypertrophy
+                            qualities.hypertrophy += volume * 1.5;
+                        }
+                    });
+                });
+            } else if (dayType === 'track') {
+                // Plyometrics = Power
+                const drillContacts = [
+                    (data.drills[0] || 0) * 50,
+                    (data.drills[1] || 0) * 50,
+                    (data.drills[2] || 0) * 25,
+                    (data.drills[3] || 0) * 25,
+                    (data.drills[4] || 0) * 50,
+                    (data.drills[5] || 0) * 35,
+                    (data.drills[6] || 0) * 2
+                ];
+                const totalContacts = drillContacts.reduce((a, b) => a + b, 0);
+                
+                qualities.power = totalContacts * 1.2;
+                
+                // Max jumps = very high power demand
+                qualities.power += ((data.drills && data.drills[6]) || 0) * 30;
+                
+                // Sprints = Speed
+                qualities.speed = (data.sprints?.length || 0) * 25;
+            } else if (dayType === 'bike') {
+                qualities.endurance = 80;
+                if (data.protocol === 'zone5' || data.protocol === 'peak-rpm') {
+                    qualities.power = 40;
+                    qualities.endurance = 60;
+                }
+            } else if (dayType === 'bjj') {
+                qualities.endurance = 50;
+                if (data.intensity === 'high') {
+                    qualities.power = 30;
+                    qualities.strength = 20;
+                }
+            }
+            
+            // Normalize to percentages
+            const total = Object.values(qualities).reduce((a, b) => a + b, 0);
+            if (total > 0) {
+                Object.keys(qualities).forEach(q => {
+                    qualities[q] = Math.round((qualities[q] / total) * 100);
+                });
+            }
+            
+            // Determine primary quality (highest %)
+            let primary = 'mixed';
+            let maxValue = 0;
+            Object.keys(qualities).forEach(q => {
+                if (qualities[q] > maxValue) {
+                    maxValue = qualities[q];
+                    primary = q;
+                }
+            });
+            
+            return { qualities, primary, emphasis: maxValue };
+        }
+        
+        // INTERFERENCE ANALYSIS - Checks if today's training interferes with future training
+        function analyzeInterference(lastDay, lastQualities, currentDay, hoursSince, recoveryQuality) {
+            const issues = [];
+            const synergies = [];
+            
+            // STRENGTH → POWER/SPEED INTERFERENCE
+            if (lastQualities.primary === 'strength' && lastQualities.emphasis >= 50) {
+                if (currentDay === 'track' && hoursSince < 48) {
+                    const performanceLoss = Math.max(0, 25 - Math.round(recoveryQuality / 4));
+                    issues.push({
+                        type: 'critical',
+                        message: `Heavy strength work ${hoursSince}hr ago → Type II fiber fatigue`,
+                        impact: `Expected power/speed loss: ${performanceLoss}%`,
+                        recommendation: `Wait ${Math.max(0, 48 - hoursSince)}hr more for optimal performance`
+                    });
+                }
+                
+                if (lastDay === 'legs' && currentDay === 'track') {
+                    issues.push({
+                        type: 'critical',
+                        message: 'Quad/glute eccentric damage from heavy squats',
+                        impact: 'Jump height -15-20%, sprint times +0.3-0.5s, injury risk HIGH',
+                        recommendation: 'Do upper body or REST. Track needs 48hr minimum'
+                    });
+                }
+            }
+            
+            // HYPERTROPHY → POWER MINIMAL INTERFERENCE
+            if (lastQualities.primary === 'hypertrophy' && currentDay === 'track' && hoursSince >= 24) {
+                synergies.push({
+                    message: 'Hypertrophy work (8-12 reps) has minimal power interference',
+                    benefit: 'Track day okay if 24hr+ recovery and quads not too sore'
+                });
+            }
+            
+            // POWER → STRENGTH INTERFERENCE
+            if (lastQualities.primary === 'power' && lastDay === 'track') {
+                if ((currentDay === 'legs' || currentDay === 'chest' || currentDay === 'back') && hoursSince < 24) {
+                    issues.push({
+                        type: 'moderate',
+                        message: 'Plyometric CNS fatigue',
+                        impact: 'Bar speed may be reduced, RPE will feel higher',
+                        recommendation: 'Reduce top set weight by 5-10% or add 1 day rest'
+                    });
+                }
+                
+                if (currentDay === 'track' && hoursSince < 48) {
+                    issues.push({
+                        type: 'critical',
+                        message: 'Consecutive high-intensity plyometric work',
+                        impact: 'Achilles/patellar tendon overload, muscle not recovered',
+                        recommendation: 'Wait 48hr between Track days'
+                    });
+                }
+            }
+            
+            // SPEED WORK FATIGUE
+            if (lastQualities.speed >= 30 && currentDay === 'track' && hoursSince < 48) {
+                issues.push({
+                    type: 'moderate',
+                    message: 'CNS still recovering from max-effort sprints',
+                    impact: 'Power output reduced, form breakdown risk',
+                    recommendation: 'Focus on sub-maximal work (85-90%) or rest'
+                });
+            }
+            
+            // BJJ → STRENGTH (GRIP) INTERFERENCE
+            if (lastDay === 'bjj' && currentDay === 'back' && hoursSince < 24) {
+                issues.push({
+                    type: 'moderate',
+                    message: 'Grip fatigue from BJJ',
+                    impact: 'Pulling strength reduced 10-15%, straps may be needed',
+                    recommendation: 'Use straps or focus on chest/legs instead'
+                });
+            }
+            
+            // SYNERGIES
+            if (lastQualities.primary === 'strength' && lastQualities.emphasis >= 60) {
+                synergies.push({
+                    message: 'High-intensity strength work enhances rate coding',
+                    benefit: 'Next power/speed session (48hr+) should see improved output'
+                });
+            }
+            
+            if (lastQualities.primary === 'hypertrophy') {
+                synergies.push({
+                    message: 'Muscle growth increases force capacity',
+                    benefit: 'Long-term strength ceiling raised'
+                });
+            }
+            
+            return { issues, synergies };
+        }
+        
+        // OPTIMAL SEQUENCING RECOMMENDATION
+        function recommendOptimalSequence(weekSessions) {
+            const recommendations = [];
+            
+            // Detect patterns
+            const hasLowerStrength = weekSessions.some(s => (s.day === 'legs' && s.qualities.strength >= 50));
+            const hasTrack = weekSessions.some(s => s.day === 'track');
+            const hasBJJ = weekSessions.some(s => s.day === 'bjj');
+            const hasBack = weekSessions.some(s => s.day === 'back');
+            
+            // Rule 1: Legs and Track should be 48hr apart
+            if (hasLowerStrength && hasTrack) {
+                recommendations.push({
+                    rule: 'Lower Body Strength ↔ Power/Speed',
+                    optimal: 'Monday: Legs → Wednesday/Thursday: Track (48-72hr gap)',
+                    why: 'Type II fibers need full glycogen restoration for explosive work'
+                });
+            }
+            
+            // Rule 2: BJJ and Back pulling
+            if (hasBJJ && hasBack) {
+                recommendations.push({
+                    rule: 'BJJ ↔ Back Day',
+                    optimal: 'Separate by 24hr minimum, 48hr ideal',
+                    why: 'Grip and lat fatigue compounds between these modalities'
+                });
+            }
+            
+            // Rule 3: Track sessions need 48hr minimum
+            if (hasTrack) {
+                recommendations.push({
+                    rule: 'Track ↔ Track',
+                    optimal: '2x per week with 3-4 days between',
+                    why: 'Achilles/patellar tendons need full remodeling time'
+                });
+            }
+            
+            // Ideal weekly structure
+            recommendations.push({
+                rule: 'IDEAL WEEKLY STRUCTURE',
+                optimal: `Mon: Chest or Back
+Tue: Legs (Strength 3-6 reps)
+Wed: Bike or REST
+Thu: TRACK (Power + Speed) ← 48hr from legs
+Fri: Chest or Back (Hypertrophy 8-12 reps)
+Sat: BJJ
+Sun: REST or light cardio`,
+                why: 'Maximizes CNS freshness for explosive work, manages cumulative fatigue'
+            });
+            
+            return recommendations;
+        }
+        
         function analyzeWeek() {
             const completed = Object.keys(weekData).filter(k => weekData[k]);
             if (completed.length === 0) {
@@ -1297,33 +2036,91 @@
                 return;
             }
             
-            // ANALYZE EACH DAY
+            // ANALYZE EACH DAY WITH QUALITY DETECTION
             const dayAnalyses = {};
+            const weekSessions = [];
             let totalCNS = 0;
             let deloadFlags = 0;
             let highIntensityDays = 0;
             
             completed.forEach(day => {
+                let analysis;
                 if (day === 'chest' || day === 'back' || day === 'legs') {
-                    dayAnalyses[day] = analyzeWeightDay(weekData[day], day);
+                    analysis = analyzeWeightDay(weekData[day], day);
                 } else if (day === 'track') {
-                    dayAnalyses[day] = analyzeTrackDay(weekData[day]);
+                    analysis = analyzeTrackDay(weekData[day]);
                 } else if (day === 'bike') {
-                    dayAnalyses[day] = analyzeBikeDay(weekData[day]);
+                    analysis = analyzeBikeDay(weekData[day]);
                 } else if (day === 'bjj') {
-                    dayAnalyses[day] = analyzeBJJDay(weekData[day]);
+                    analysis = analyzeBJJDay(weekData[day]);
                 }
                 
-                totalCNS += dayAnalyses[day].cnsScore;
-                if (dayAnalyses[day].deload) deloadFlags++;
-                if (dayAnalyses[day].cnsScore >= 65) highIntensityDays++;
+                // ADD QUALITY DETECTION
+                const qualityAnalysis = detectTrainingQuality(weekData[day], day);
+                analysis.qualities = qualityAnalysis.qualities;
+                analysis.primary = qualityAnalysis.primary;
+                analysis.emphasis = qualityAnalysis.emphasis;
+                
+                dayAnalyses[day] = analysis;
+                weekSessions.push({
+                    day: day,
+                    data: weekData[day],
+                    analysis: analysis,
+                    qualities: qualityAnalysis.qualities,
+                    primary: qualityAnalysis.primary,
+                    cnsScore: analysis.cnsScore
+                });
+                
+                totalCNS += analysis.cnsScore;
+                if (analysis.deload) deloadFlags++;
+                if (analysis.cnsScore >= 65) highIntensityDays++;
             });
             
             const avgCNS = Math.round(totalCNS / completed.length);
             const globalDeload = deloadFlags >= 2 || avgCNS >= 75;
             
+            // ANALYZE INTERFERENCE BETWEEN SESSIONS
+            const interferenceAnalyses = [];
+            for (let i = 0; i < weekSessions.length - 1; i++) {
+                const current = weekSessions[i];
+                const next = weekSessions[i + 1];
+                
+                // Assume 24hr between sessions for now (could be enhanced with actual dates)
+                const hoursBetween = 24;
+                const recoveryQuality = 70; // Estimated
+                
+                const interference = analyzeInterference(
+                    current.day,
+                    current.qualities,
+                    next.day,
+                    hoursBetween,
+                    recoveryQuality
+                );
+                
+                if (interference.issues.length > 0 || interference.synergies.length > 0) {
+                    interferenceAnalyses.push({
+                        from: current.day,
+                        to: next.day,
+                        ...interference
+                    });
+                }
+            }
+            
+            // GET OPTIMAL SEQUENCING RECOMMENDATIONS
+            const sequenceRecs = recommendOptimalSequence(weekSessions);
+            
             // GENERATE RESULTS
-            displayResults(completed, dayAnalyses, avgCNS, highIntensityDays, deloadFlags, globalDeload);
+            displayResults(
+                completed, 
+                dayAnalyses, 
+                avgCNS, 
+                highIntensityDays, 
+                deloadFlags, 
+                globalDeload,
+                weekSessions,
+                interferenceAnalyses,
+                sequenceRecs
+            );
         }
         
         // WEIGHT DAY ANALYSIS
@@ -1385,7 +2182,7 @@
                 });
             }
             
-            const rationale = `CNS: ${cnsScore}/100 | Avg RPE: ${avgRPE.toFixed(1)} | Feeling: ${data.feeling} | Sleep: ${data.sleep}hr | Volume load: ${totalVolumeLoad.toLocaleString()} lbs`;
+            const rationale = `CNS: ${cnsScore}/100 | Avg RPE: ${avgRPE.toFixed(1)} | Feeling: ${data.feeling} | Sleep: ${data.sleep}hr | Volume load: ${totalVolumeLoad.toLocaleString()} lbs | Muscles: ${data.exercises.map(ex => ex.muscleGroup).filter(m => m).join(', ') || 'not specified'}`;
             
             return { cnsScore, deload, nextSession, rationale, deloadTriggers };
         }
@@ -1541,8 +2338,8 @@
             return { cnsScore, deload, nextSession, rationale, deloadTriggers };
         }
         
-        // DISPLAY RESULTS
-        function displayResults(completed, analyses, avgCNS, highIntensityDays, deloadFlags, globalDeload) {
+        // DISPLAY RESULTS WITH CONCURRENT TRAINING ANALYSIS
+        function displayResults(completed, analyses, avgCNS, highIntensityDays, deloadFlags, globalDeload, weekSessions, interferenceAnalyses, sequenceRecs) {
             let html = `<div class="results"><h2>🧠 EXPERT ANALYSIS</h2>`;
             
             // GLOBAL DELOAD WARNING
@@ -1578,6 +2375,95 @@
                 </div>
             `;
             
+            // TRAINING QUALITIES BREAKDOWN
+            html += `
+                <div class="day-plan" style="border-left-color: #ff6b35;">
+                    <h3>📊 TRAINING QUALITIES THIS WEEK</h3>
+            `;
+            
+            weekSessions.forEach(session => {
+                const q = session.qualities;
+                const qualities = [];
+                if (q.strength >= 20) qualities.push(`Strength ${q.strength}%`);
+                if (q.hypertrophy >= 20) qualities.push(`Hypertrophy ${q.hypertrophy}%`);
+                if (q.power >= 20) qualities.push(`Power ${q.power}%`);
+                if (q.speed >= 20) qualities.push(`Speed ${q.speed}%`);
+                if (q.endurance >= 20) qualities.push(`Endurance ${q.endurance}%`);
+                
+                const primaryColor = session.primary === 'strength' ? '#ff6b35' : 
+                                    session.primary === 'hypertrophy' ? '#00ccff' :
+                                    session.primary === 'power' ? '#ff00ff' :
+                                    session.primary === 'speed' ? '#ffff00' : '#00ff88';
+                
+                html += `<p><strong style="color: ${primaryColor}">${session.day.toUpperCase()}</strong>: ${qualities.join(', ')} <span style="color: #666">(Primary: ${session.primary})</span></p>`;
+            });
+            
+            html += `</div>`;
+            
+            // INTERFERENCE WARNINGS
+            if (interferenceAnalyses.length > 0) {
+                html += `
+                    <div class="alert-box" style="background: rgba(255, 165, 0, 0.2); border-color: #ffaa00;">
+                        <h3>⚡ INTERFERENCE DETECTED</h3>
+                `;
+                
+                interferenceAnalyses.forEach(ia => {
+                    ia.issues.forEach(issue => {
+                        const icon = issue.type === 'critical' ? '🔴' : '🟡';
+                        html += `
+                            <div style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                                <p><strong>${icon} ${ia.from.toUpperCase()} → ${ia.to.toUpperCase()}</strong></p>
+                                <p style="color: #ffaa00;">${issue.message}</p>
+                                <p style="color: #ff6666;"><strong>Impact:</strong> ${issue.impact}</p>
+                                <p style="color: #00ff88;"><strong>Fix:</strong> ${issue.recommendation}</p>
+                            </div>
+                        `;
+                    });
+                });
+                
+                html += `</div>`;
+            }
+            
+            // SYNERGIES
+            const allSynergies = interferenceAnalyses.flatMap(ia => ia.synergies);
+            if (allSynergies.length > 0) {
+                html += `
+                    <div class="day-plan" style="border-left-color: #00ff88;">
+                        <h3>✨ TRAINING SYNERGIES</h3>
+                `;
+                
+                allSynergies.forEach(syn => {
+                    html += `
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #00ff88;">✓</strong> ${syn.message}<br>
+                            <span style="color: #666;">→ ${syn.benefit}</span>
+                        </p>
+                    `;
+                });
+                
+                html += `</div>`;
+            }
+            
+            // OPTIMAL SEQUENCING
+            if (sequenceRecs.length > 0) {
+                html += `
+                    <div class="day-plan" style="border-left-color: #00ccff;">
+                        <h3>📅 OPTIMAL TRAINING SEQUENCE</h3>
+                `;
+                
+                sequenceRecs.forEach(rec => {
+                    html += `
+                        <div style="margin-bottom: 15px;">
+                            <p><strong style="color: #00ccff;">${rec.rule}</strong></p>
+                            <p style="color: #aaa; white-space: pre-line;">${rec.optimal}</p>
+                            <p style="color: #666; font-size: 14px; margin-top: 5px;"><em>Why: ${rec.why}</em></p>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            }
+            
             // TOMORROW'S PLAN
             const lastDay = completed[completed.length - 1];
             const lastAnalysis = analyses[lastDay];
@@ -1607,7 +2493,7 @@
             document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
         }
         
-        // TOMORROW'S PLAN LOGIC
+        // TOMORROW'S PLAN LOGIC WITH MUSCLE GROUP INTERFERENCE
         function getTomorrowPlan(lastDay, lastAnalysis, highIntensityDays, globalDeload) {
             if (globalDeload || lastAnalysis.deload) {
                 return `<strong>FULL REST.</strong> No training. Walk 20-30 min max, foam roll, stretch. Priority: 8+ hours sleep, high protein intake.`;
@@ -1617,31 +2503,58 @@
                 return `<strong>ACTIVE RECOVERY ONLY.</strong> You've had ${highIntensityDays} high-CNS days. Light walk, stretching, or easy mobility work. NO training.`;
             }
             
-            // Interference logic
-            if (lastDay === 'legs') {
-                return `<strong>UPPER BODY or BIKE ONLY.</strong> Legs need 48hr before plyometrics. Chest/Back training is fine, or easy Z2 bike (20-30min). Avoid Track/BJJ tomorrow.`;
+            // Get muscle groups trained yesterday
+            let musclesHit = [];
+            if ((lastDay === 'chest' || lastDay === 'back' || lastDay === 'legs') && weekData[lastDay] && weekData[lastDay].exercises) {
+                musclesHit = weekData[lastDay].exercises.map(ex => ex.muscleGroup).filter(m => m);
             }
             
+            // Muscle group interference detection
+            const hasQuads = musclesHit.includes('quads');
+            const hasHams = musclesHit.includes('hamstrings');
+            const hasGlutes = musclesHit.includes('glutes');
+            const hasChest = musclesHit.includes('chest');
+            const hasShoulders = musclesHit.includes('shoulders');
+            const hasBack = musclesHit.includes('back');
+            const hasBiceps = musclesHit.includes('biceps');
+            
+            // Lower body interference
+            if (hasQuads || hasHams || hasGlutes || lastDay === 'legs') {
+                return `<strong>UPPER BODY ONLY.</strong> Lower body trained yesterday (${musclesHit.join(', ') || 'legs'}). Need 48hr before Track/Plyo. Chest/Back/Shoulders okay. Avoid BJJ if leg-heavy (takedowns stress quads).`;
+            }
+            
+            // Track day interference
             if (lastDay === 'track') {
-                return `<strong>UPPER BODY or REST.</strong> Lower body needs recovery from plyometric stress. Chest/Back is okay if you feel fresh, otherwise rest.`;
+                return `<strong>UPPER BODY or REST.</strong> Quads, glutes, calves all hit from plyometrics. CNS stress from explosive work. Upper body training okay, or full rest if achilles/calves sore.`;
             }
             
+            // Chest + shoulder overlap
+            if (hasChest || hasShoulders) {
+                return `<strong>BACK, LEGS, or BIKE.</strong> Chest/shoulders trained yesterday (front delts fatigued). Avoid overhead pressing. Back, legs, or cardio work best tomorrow.`;
+            }
+            
+            // Back + grip interference
+            if (hasBack || hasBiceps || lastDay === 'back') {
+                if (lastAnalysis.cnsScore >= 60) {
+                    return `<strong>AVOID BJJ TOMORROW.</strong> Back/grip work was intense (CNS ${lastAnalysis.cnsScore}). Grip needs recovery. Do chest, shoulders, or legs instead.`;
+                }
+                return `<strong>CHEST, SHOULDERS, or LEGS.</strong> Back/pulling trained yesterday. Avoid more back/bicep work. BJJ okay if CNS is low, but grip may be fatigued.`;
+            }
+            
+            // BJJ interference
             if (lastDay === 'bjj') {
                 if (lastAnalysis.cnsScore >= 60) {
-                    return `<strong>LIGHT ACTIVITY ONLY.</strong> BJJ took a toll (CNS: ${lastAnalysis.cnsScore}). Easy mobility or Z2 cardio max 20 min.`;
+                    return `<strong>LIGHT ACTIVITY ONLY.</strong> BJJ took a toll (CNS: ${lastAnalysis.cnsScore}). Grip, core, neck all fatigued. Easy mobility or Z2 cardio max 20 min.`;
                 }
-                return `<strong>UPPER BODY or BIKE.</strong> Avoid lower body training. Upper body strength or bike intervals are fine if you feel recovered.`;
+                return `<strong>UPPER BODY PRESSING or BIKE.</strong> BJJ hit grip/pulling (back, biceps, forearms). Chest, shoulders, triceps fresh. Leg work okay if no heavy takedowns yesterday.`;
             }
             
-            if (lastDay === 'chest' || lastDay === 'back') {
-                return `<strong>LEGS, TRACK, or BIKE.</strong> Upper body is taxed, train lower body or cardio. All modalities available.`;
-            }
-            
+            // Bike day
             if (lastDay === 'bike') {
                 return `<strong>STRENGTH TRAINING PREFERRED.</strong> Avoid back-to-back high-intensity cardio. Weight training (any muscle group) or skill work (light BJJ technique) is ideal.`;
             }
             
-            return `<strong>FLEXIBLE.</strong> CNS stress is moderate. Train different modality or take active recovery based on how you feel.`;
+            return `<strong>FLEXIBLE.</strong> CNS stress is moderate. Train different muscle groups or take active recovery based on how you feel.`;
         }
         
         window.onload = function() {
